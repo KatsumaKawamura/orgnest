@@ -22,6 +22,7 @@ export default function Project({
   onFlagChange,
 }: ProjectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isFlagOpen, setIsFlagOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // 外側クリックでリスト閉じる
@@ -32,6 +33,7 @@ export default function Project({
         !wrapperRef.current.contains(e.target as Node)
       ) {
         setIsOpen(false);
+        setIsFlagOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -42,17 +44,33 @@ export default function Project({
     <div className="relative space-y-2" ref={wrapperRef}>
       {/* === 編集モード時のみフラグプルダウン === */}
       {isEditing && (
-        <select
-          value={flag}
-          onChange={(e) => onFlagChange(e.target.value)}
-          className="w-full border border-gray-800 rounded px-3 py-1 bg-gray-100 text-gray-800"
-        >
-          {flagOptions.map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
-          ))}
-        </select>
+        <div>
+          <div
+            className="flex items-center border border-gray-800 rounded px-3 py-1 bg-gray-100 cursor-pointer"
+            onClick={() => setIsFlagOpen(!isFlagOpen)}
+          >
+            <span className="flex-1 text-gray-800">
+              {flag || "フラグを選択"}
+            </span>
+            <ChevronDown className="w-4 h-4 text-gray-800" />
+          </div>
+          {isFlagOpen && (
+            <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-800 rounded shadow">
+              {flagOptions.map((f) => (
+                <li
+                  key={f}
+                  className="px-3 py-1 hover:bg-gray-200 cursor-pointer"
+                  onClick={() => {
+                    onFlagChange(f);
+                    setIsFlagOpen(false);
+                  }}
+                >
+                  {f}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       {/* === Project入力 === */}
