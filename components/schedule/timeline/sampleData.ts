@@ -1,0 +1,77 @@
+// /components/schedule/timeline/sampleData.ts
+import { Schedule, Member } from "@/types/schedule";
+
+export const sampleMembers: Member[] = [
+  { id: 1, name: "田中" },
+  { id: 2, name: "佐藤" },
+  { id: 3, name: "鈴木" },
+];
+
+export const sampleSchedules: Schedule[] = [
+  {
+    id: 1,
+    memberId: 1,
+    start: "09:00",
+    end: "10:00",
+    flag: "事務所",
+    project: "案件A",
+    notes: "資料作成",
+    slotIndex: 0,
+    slotCount: 1,
+  },
+  {
+    id: 2,
+    memberId: 1,
+    start: "09:30",
+    end: "11:00",
+    flag: "現場",
+    project: "案件B",
+    notes: "現場立会い",
+    slotIndex: 0,
+    slotCount: 1,
+  },
+  {
+    id: 3,
+    memberId: 1,
+    start: "10:30",
+    end: "12:00",
+    flag: "打ち合わせ",
+    project: "案件C",
+    notes: "顧客MTG",
+    slotIndex: 0,
+    slotCount: 1,
+  },
+  {
+    id: 4,
+    memberId: 2,
+    start: "13:00",
+    end: "14:00",
+    flag: "現場",
+    project: "案件D",
+    notes: "進捗確認",
+    slotIndex: 0,
+    slotCount: 1,
+  },
+  {
+    id: 5,
+    memberId: 3,
+    start: "08:00",
+    end: "09:30",
+    flag: "事務所",
+    project: "案件E",
+    notes: "レポート作成",
+    slotIndex: 0,
+    slotCount: 1,
+  },
+  {
+    id: 6,
+    memberId: 3,
+    start: "09:00",
+    end: "10:00",
+    flag: "打ち合わせ",
+    project: "案件F",
+    notes: "チームMTG",
+    slotIndex: 0,
+    slotCount: 1,
+  },
+];

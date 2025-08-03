@@ -1,19 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { Schedule, Member } from "@/types/schedule";
 
 interface TimelineBarProps {
-  schedule: {
-    id: number;
-    memberId: number;
-    start: string;
-    end: string;
-    flag: string;
-    project: string;
-    notes?: string;
-    slotIndex: number;
-    slotCount: number;
-  };
-  members: { id: number; name: string }[];
+  schedule: Schedule;
+  members: Member[];
   startHour: number;
   pxPerMinute: number;
   memberColumnWidth: number;

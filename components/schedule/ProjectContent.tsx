@@ -30,19 +30,17 @@ export default function ProjectContent({
     }
   };
 
-  // === まとめ削除 ===
   const handleBulkRemove = () => {
     const newList = projectList.filter((p) => !selectedProjects.includes(p));
-    onReplace(newList); // 一気に更新
+    onReplace(newList);
     setSelectedProjects([]);
     setDeleteMode(false);
     setShowConfirmBulk(false);
   };
 
-  // === 単品削除 ===
   const handleSingleRemove = () => {
     if (confirmTarget) {
-      onRemove(confirmTarget); // 単品削除
+      onRemove(confirmTarget);
       setConfirmTarget(null);
     }
   };
@@ -71,19 +69,24 @@ export default function ProjectContent({
       {/* === 見出し + ボタン群 === */}
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-lg font-semibold text-gray-800">Project List</h1>
-        <div className="flex space-x-2">
+
+        {/* 左：戻る/選択　右：削除（ダミー含む） */}
+        <div className="flex space-x-2 w-[220px] justify-end">
+          {/* 左側: 戻る or 選択（幅固定で位置合わせ） */}
           <button
             onClick={() => setDeleteMode(!deleteMode)}
-            className="flex items-center px-4 py-2 rounded bg-gray-300 text-gray-800 hover:bg-gray-400"
+            className="flex items-center justify-center w-[96px] px-4 py-2 rounded bg-gray-300 text-gray-800 hover:bg-gray-400"
           >
             <Trash2 className="w-4 h-4 mr-2 text-gray-800" />
             {deleteMode ? "戻る" : "選択"}
           </button>
-          {deleteMode && (
+
+          {/* 右側: 削除（削除モードのみ表示、通常モードはダミー） */}
+          {deleteMode ? (
             <div className="relative">
               <button
                 onClick={() => setShowConfirmBulk(true)}
-                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
+                className="w-[72px] px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
               >
                 削除
               </button>
@@ -95,6 +98,8 @@ export default function ProjectContent({
                 />
               )}
             </div>
+          ) : (
+            <div className="w-[72px]" /> // ダミーで削除ボタン分のスペースを確保
           )}
         </div>
       </div>
@@ -148,7 +153,6 @@ export default function ProjectContent({
               <span>{p}</span>
             </div>
 
-            {/* 単品削除（通常モード） */}
             {!deleteMode && (
               <div className="relative">
                 <button

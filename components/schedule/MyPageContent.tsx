@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import ScheduleCard from "@/components/schedule/ScheduleCard";
-import ConfirmDialog from "@/components/common/ConfirmDialog"; // ←追加
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import { Trash2 } from "lucide-react"; // ←追加
 
 interface MyPageContentProps {
   projectList: string[];
@@ -25,7 +26,6 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showConfirmBulk, setShowConfirmBulk] = useState(false);
 
-  // カード追加
   const addCard = () => {
     setCards([
       ...cards,
@@ -42,7 +42,6 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
     ]);
   };
 
-  // 一括削除
   const removeSelectedCards = () => {
     setCards(cards.filter((c) => !selectedIds.includes(c.id)));
     setSelectedIds([]);
@@ -50,12 +49,10 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
     setShowConfirmBulk(false);
   };
 
-  // カード更新
   const updateCard = (id: number, updated: Partial<(typeof cards)[0]>) => {
     setCards(cards.map((c) => (c.id === id ? { ...c, ...updated } : c)));
   };
 
-  // ソート
   const sortedCards = [...cards].sort((a, b) => {
     const startA =
       parseInt(a.startHour || "0") * 60 + parseInt(a.startMinute || "0");
@@ -64,7 +61,6 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
     return startA - startB;
   });
 
-  // 選択モード関連
   const toggleSelect = (id: number) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
@@ -99,8 +95,9 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
         </button>
         <button
           onClick={toggleDeleteMode}
-          className="px-4 py-2 rounded bg-gray-300 text-gray-800 hover:bg-gray-400"
+          className="flex items-center px-4 py-2 rounded bg-gray-300 text-gray-800 hover:bg-gray-400"
         >
+          <Trash2 className="w-4 h-4 mr-2 text-gray-800" />
           {deleteMode ? "戻る" : "選択"}
         </button>
         {deleteMode && (
