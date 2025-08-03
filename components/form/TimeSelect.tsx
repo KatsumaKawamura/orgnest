@@ -53,31 +53,31 @@ export default function TimeSelect({
           <select
             value={startHour || ""}
             onChange={(e) => onChange({ startHour: e.target.value })}
-            className="border border-gray-800 rounded px-2 py-1 text-gray-800 bg-gray-100"
+            className="border border-gray-800 rounded px-0.5 py-1 text-gray-800 bg-gray-100"
           >
             {hourOptions}
           </select>
-          <span className="text-gray-500">：</span>
+          <span className="text-gray-500">:</span>
           <select
             value={startMinute || ""}
             onChange={(e) => onChange({ startMinute: e.target.value })}
-            className="border border-gray-800 rounded px-2 py-1 text-gray-800 bg-gray-100"
+            className="border border-gray-800 rounded px-0.5 py-1 text-gray-800 bg-gray-100"
           >
             {minuteOptions}
           </select>
-          <span className="px-2 text-gray-800">〜</span>
+          <span className="text-gray-800">〜</span>
           <select
             value={endHour || ""}
             onChange={(e) => onChange({ endHour: e.target.value })}
-            className="border border-gray-800 rounded px-2 py-1 text-gray-800 bg-gray-100"
+            className="border border-gray-800 rounded px-0.5 py-1 text-gray-800 bg-gray-100"
           >
             {hourOptions}
           </select>
-          <span className="text-gray-500">：</span>
+          <span className="text-gray-500">:</span>
           <select
             value={endMinute || ""}
             onChange={(e) => onChange({ endMinute: e.target.value })}
-            className="border border-gray-800 rounded px-2 py-1 text-gray-800 bg-gray-100"
+            className="border border-gray-800 rounded px-0.5 py-1 text-gray-800 bg-gray-100"
           >
             {minuteOptions}
           </select>
