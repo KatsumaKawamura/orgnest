@@ -37,7 +37,7 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
         endMinute: "",
         project: "",
         notes: "",
-        flag: "内勤",
+        flag: "事務所",
       },
     ]);
   };

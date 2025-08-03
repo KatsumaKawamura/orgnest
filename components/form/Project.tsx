@@ -59,7 +59,7 @@ export default function Project({
               {flagOptions.map((f) => (
                 <li
                   key={f}
-                  className="px-3 py-1 hover:bg-gray-200 cursor-pointer"
+                  className="px-3 py-1 text-gray-800 hover:bg-gray-200 hover:text-gray-900 cursor-pointer"
                   onClick={() => {
                     onFlagChange(f);
                     setIsFlagOpen(false);
@@ -94,7 +94,7 @@ export default function Project({
               {options.map((opt) => (
                 <li
                   key={opt}
-                  className="px-3 py-1 hover:bg-gray-200 cursor-pointer"
+                  className="px-3 py-1 text-gray-800 hover:bg-gray-200 hover:text-gray-900 cursor-pointer"
                   onClick={() => {
                     onChange(opt);
                     setIsOpen(false);
