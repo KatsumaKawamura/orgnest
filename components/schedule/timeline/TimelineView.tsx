@@ -9,8 +9,8 @@ export default function TimelineView() {
   const members = sampleMembers;
   const schedules: Schedule[] = sampleSchedules;
 
-  const startHour = 6;
-  const endHour = 20;
+  const startHour = 5.5;
+  const endHour = 24.5;
   const pxPerMinute = 2;
   const memberColumnWidth = 120;
 
@@ -27,10 +27,7 @@ export default function TimelineView() {
         {/* 1行目: ヘッダー（時間ラベル列 + メンバー名） */}
         <div></div>
         {members.map((m) => (
-          <div
-            key={m.id}
-            className="text-center font-semibold text-gray-800 border-r border-gray-300"
-          >
+          <div key={m.id} className="text-center font-semibold text-gray-800">
             {m.name}
           </div>
         ))}

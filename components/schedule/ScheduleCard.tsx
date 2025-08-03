@@ -13,9 +13,11 @@ interface ScheduleCardProps {
   endMinute: string;
   project: string;
   notes: string;
-  flag: string; // 追加
+  flag: string;
   onChange: (updatedCard: Partial<ScheduleCardProps>) => void;
   projectList: string[];
+  onEditStart?: () => void;
+  onEditEnd?: () => void;
 }
 
 const flagColors: Record<string, string> = {
@@ -35,11 +37,32 @@ export default function ScheduleCard({
   flag,
   onChange,
   projectList,
+  onEditStart,
+  onEditEnd,
 }: ScheduleCardProps) {
   const [isEditing, setIsEditing] = useState(false);
 
+  const handleEdit = () => {
+    setIsEditing(true);
+    if (onEditStart) onEditStart();
+  };
+
   const handleSave = () => {
+    // === バリデーション ===
+    const start =
+      parseInt(startHour || "0") * 60 + parseInt(startMinute || "0");
+    const end = parseInt(endHour || "0") * 60 + parseInt(endMinute || "0");
+    if (isNaN(start) || isNaN(end)) {
+      alert("開始時間と終了時間を入力してください");
+      return;
+    }
+    if (start >= end) {
+      alert("終了時間は開始時間より後にしてください");
+      return;
+    }
+
     setIsEditing(false);
+    if (onEditEnd) onEditEnd();
   };
 
   return (
@@ -62,7 +85,7 @@ export default function ScheduleCard({
         <div>
           {!isEditing ? (
             <button
-              onClick={() => setIsEditing(true)}
+              onClick={handleEdit}
               className="p-1 rounded hover:bg-gray-200"
             >
               <Pencil className="w-5 h-5 text-gray-800" />

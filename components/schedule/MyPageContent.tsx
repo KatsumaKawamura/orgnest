@@ -2,7 +2,7 @@
 import { useState } from "react";
 import ScheduleCard from "@/components/schedule/ScheduleCard";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
-import { Trash2 } from "lucide-react"; // ←追加
+import { Trash2 } from "lucide-react";
 
 interface MyPageContentProps {
   projectList: string[];
@@ -25,6 +25,7 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
   const [deleteMode, setDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showConfirmBulk, setShowConfirmBulk] = useState(false);
+  const [editingCardId, setEditingCardId] = useState<number | null>(null); // ←追加
 
   const addCard = () => {
     setCards([
@@ -53,7 +54,11 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
     setCards(cards.map((c) => (c.id === id ? { ...c, ...updated } : c)));
   };
 
+  // === ソート処理：編集中は追加順のまま ===
   const sortedCards = [...cards].sort((a, b) => {
+    if (editingCardId !== null) {
+      return a.id - b.id; // 編集中は追加順
+    }
     const startA =
       parseInt(a.startHour || "0") * 60 + parseInt(a.startMinute || "0");
     const startB =
@@ -149,6 +154,8 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
                 {...card}
                 projectList={projectList}
                 onChange={(updated) => updateCard(card.id, updated)}
+                onEditStart={() => setEditingCardId(card.id)} // ← 編集開始
+                onEditEnd={() => setEditingCardId(null)} // ← 編集終了
               />
             </div>
           </div>

@@ -15,30 +15,32 @@ export default function TimelineGrid({
   memberCount,
   memberColumnWidth,
 }: TimelineGridProps) {
+  // ラベルは切り上げた整数から
+  const labelStartHour = Math.ceil(startHour);
   const hours = Array.from(
-    { length: endHour - startHour + 1 },
-    (_, i) => startHour + i
+    { length: endHour - labelStartHour + 1 },
+    (_, i) => labelStartHour + i
   );
 
-  const gridHeight = (endHour - startHour) * 60 * pxPerMinute;
+  // 高さ計算（startHourからendHourまで）
+  const totalMinutes = (endHour - startHour) * 60;
+  const gridHeight = totalMinutes * pxPerMinute;
   const gridWidth = memberCount * memberColumnWidth;
 
   return (
     <div className="relative" style={{ width: gridWidth, height: gridHeight }}>
-      {/* 時間ラベル & 横線 */}
+      {/* 横線 & ラベル */}
       {hours.map((hour, i) => (
         <div key={i}>
-          {/* 横線（最上段と最下段は非表示） */}
-          {i !== 0 && i !== hours.length - 1 && (
-            <div
-              className="absolute left-0 right-0 border-t border-gray-300"
-              style={{
-                top: `${(hour - startHour) * 60 * pxPerMinute}px`,
-                width: "100%",
-              }}
-            />
-          )}
-          {/* 時間ラベル（左端に表示） */}
+          {/* 横線 */}
+          <div
+            className="absolute left-0 right-0 border-t border-gray-300"
+            style={{
+              top: `${(hour - startHour) * 60 * pxPerMinute}px`,
+              width: "100%",
+            }}
+          />
+          {/* 時間ラベル */}
           <div
             className="absolute -left-12 text-sm text-gray-700"
             style={{
@@ -52,7 +54,7 @@ export default function TimelineGrid({
         </div>
       ))}
 
-      {/* 縦線（メンバー列の区切り） */}
+      {/* 縦線 */}
       {Array.from({ length: memberCount + 1 }).map((_, i) => (
         <div
           key={i}

@@ -25,9 +25,12 @@ export default function TimeSelect({
   isEditing,
   onChange,
 }: TimeSelectProps) {
-  const hours = Array.from({ length: 24 }, (_, i) =>
-    String(i).padStart(2, "0")
-  );
+  // 8〜23 → 0〜7 の順で並べる
+  const hours = [
+    ...Array.from({ length: 16 }, (_, i) => String(i + 8).padStart(2, "0")), // 8〜23
+    ...Array.from({ length: 8 }, (_, i) => String(i).padStart(2, "0")), // 0〜7
+  ];
+
   const minutes = Array.from({ length: 12 }, (_, i) =>
     String(i * 5).padStart(2, "0")
   );
