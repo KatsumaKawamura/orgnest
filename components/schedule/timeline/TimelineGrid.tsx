@@ -28,14 +28,16 @@ export default function TimelineGrid({
       {/* 時間ラベル & 横線 */}
       {hours.map((hour, i) => (
         <div key={i}>
-          {/* 横線 */}
-          <div
-            className="absolute left-0 right-0 border-t border-gray-300"
-            style={{
-              top: `${(hour - startHour) * 60 * pxPerMinute}px`,
-              width: "100%",
-            }}
-          />
+          {/* 横線（最上段と最下段は非表示） */}
+          {i !== 0 && i !== hours.length - 1 && (
+            <div
+              className="absolute left-0 right-0 border-t border-gray-300"
+              style={{
+                top: `${(hour - startHour) * 60 * pxPerMinute}px`,
+                width: "100%",
+              }}
+            />
+          )}
           {/* 時間ラベル（左端に表示） */}
           <div
             className="absolute -left-12 text-sm text-gray-700"

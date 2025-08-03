@@ -86,11 +86,9 @@ export default function TimelineView() {
 
       const active: any[] = [];
       arr.forEach((s) => {
-        // 終了時間が過ぎたバーは削除
         for (let i = active.length - 1; i >= 0; i--) {
           if (active[i].end <= s.start) active.splice(i, 1);
         }
-        // 使用中スロットを取得
         const usedSlots = active.map((a) => a.slotIndex);
         let slotIndex = 0;
         while (usedSlots.includes(slotIndex)) slotIndex++;
@@ -109,12 +107,12 @@ export default function TimelineView() {
 
   return (
     <div className="relative">
-      {/* 上部：メンバー名ヘッダー */}
+      {/* 上部：メンバー名ヘッダー（縦線なし） */}
       <div className="flex" style={{ marginLeft: "48px" }}>
         {members.map((m) => (
           <div
             key={m.id}
-            className="text-center font-semibold border-r border-gray-300 text-gray-800"
+            className="text-center font-semibold text-gray-800"
             style={{ width: `${memberColumnWidth}px` }}
           >
             {m.name}
