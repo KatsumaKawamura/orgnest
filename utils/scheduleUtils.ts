@@ -17,18 +17,23 @@ export function assignSlots(schedules: Schedule[]): Schedule[] {
 
     const active: Schedule[] = [];
     arr.forEach((s) => {
+      // 終了したものを削除
       for (let i = active.length - 1; i >= 0; i--) {
         if (active[i].end <= s.start) active.splice(i, 1);
       }
+
+      // 空いているスロット番号を探す
       const usedSlots = active.map((a) => a.slotIndex);
       let slotIndex = 0;
       while (usedSlots.includes(slotIndex)) slotIndex++;
       s.slotIndex = slotIndex;
-      active.push(s);
-    });
 
-    const maxSlot = Math.max(...arr.map((s) => s.slotIndex), 0) + 1;
-    arr.forEach((s) => (s.slotCount = maxSlot));
+      active.push(s);
+
+      // 現在の重なり数（自分＋アクティブ）を全員にセット
+      const overlapCount = active.length;
+      active.forEach((a) => (a.slotCount = overlapCount));
+    });
   });
 
   return Object.values(grouped).flat();

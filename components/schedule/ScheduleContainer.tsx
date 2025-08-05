@@ -1,30 +1,49 @@
+// ScheduleContainer.tsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MyPageContent from "@/components/schedule/mypage/MyPageContent";
-import TeamContent from "@/components/schedule/TeamContent";
+import TeamContent from "@/components/schedule/team/TeamContent";
 import ProjectListContent from "@/components/schedule/projectlist/ProjectListContent";
+import { MyPageCard } from "@/types/schedule";
 
 export default function ScheduleContainer() {
   const [activeTab, setActiveTab] = useState<"team" | "mypage" | "project">(
     "mypage"
   );
 
+  // === MyPageカードを親で管理 ===
+  const [mypageCards, setMypageCards] = useState<MyPageCard[]>([]);
+
+  // マウント後にlocalStorageから読み込み
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem("mypage_cards");
+      if (saved) setMypageCards(JSON.parse(saved));
+    } catch {
+      console.error("Failed to parse mypage_cards");
+    }
+  }, []);
+
+  // 保存
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("mypage_cards", JSON.stringify(mypageCards));
+  }, [mypageCards]);
+
   // === プロジェクトリストを親で管理 ===
   const [projectList, setProjectList] = useState<string[]>(["案件A", "案件B"]);
 
-  // 1件追加
   const addProject = (name: string) => {
     if (name && !projectList.includes(name)) {
       setProjectList([...projectList, name]);
     }
   };
 
-  // 1件削除
   const removeProject = (name: string) => {
     setProjectList(projectList.filter((p) => p !== name));
   };
 
-  // まとめ削除
   const replaceProjects = (newList: string[]) => {
     setProjectList(newList);
   };
@@ -41,12 +60,10 @@ export default function ScheduleContainer() {
 
   return (
     <main className="p-6 bg-[#ece9e5] min-h-screen">
-      {/* 日付表示 */}
       <div className="mb-2 text-lg font-semibold text-gray-800">
         {formattedDateWithBrackets}
       </div>
 
-      {/* タブ切替 */}
       <div className="mb-4 flex space-x-4 border-b border-gray-300">
         <button
           onClick={() => setActiveTab("team")}
@@ -80,8 +97,13 @@ export default function ScheduleContainer() {
         </button>
       </div>
 
-      {/* コンテンツ切替 */}
-      {activeTab === "mypage" && <MyPageContent projectList={projectList} />}
+      {activeTab === "mypage" && (
+        <MyPageContent
+          projectList={projectList}
+          cards={mypageCards}
+          setCards={setMypageCards}
+        />
+      )}
       {activeTab === "team" && <TeamContent />}
       {activeTab === "project" && (
         <ProjectListContent

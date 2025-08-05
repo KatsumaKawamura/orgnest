@@ -1,13 +1,17 @@
 "use client";
 import ScheduleCard from "@/components/schedule/mypage/ScheduleCard";
 import MyPageActionBar from "./MyPageActionBar";
-import { MyPageContentProps } from "@/types/schedule";
+import { MyPageContentProps, MyPageCard } from "@/types/schedule";
 import { useMyPageContent } from "@/hooks/useMyPageContent";
 import Checkbox from "@/components/common/Checkbox";
 
-export default function MyPageContent({ projectList }: MyPageContentProps) {
+interface Props extends MyPageContentProps {
+  cards: MyPageCard[];
+  setCards: React.Dispatch<React.SetStateAction<MyPageCard[]>>;
+}
+
+export default function MyPageContent({ projectList, cards, setCards }: Props) {
   const {
-    cards, // ← cardsを直接描画に使用
     deleteMode,
     selectedIds,
     showConfirmBulk,
@@ -20,8 +24,8 @@ export default function MyPageContent({ projectList }: MyPageContentProps) {
     handleSelectAllOrClear,
     toggleDeleteMode,
     setShowConfirmBulk,
-    sortOnSave, // 保存時ソート関数
-  } = useMyPageContent();
+    sortOnSave,
+  } = useMyPageContent(cards, setCards);
 
   return (
     <div>

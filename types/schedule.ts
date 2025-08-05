@@ -31,7 +31,7 @@ export interface Schedule {
 
 // MyPageカード用
 export interface MyPageCard {
-  id: number;
+  id: string;
   startHour: string;
   startMinute: string;
   endHour: string;

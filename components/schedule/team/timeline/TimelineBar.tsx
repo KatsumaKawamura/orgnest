@@ -29,10 +29,20 @@ export default function TimelineBar({
   const top = startMinutes * pxPerMinute;
   const height = (endMinutes - startMinutes) * pxPerMinute;
 
-  const slotWidth = memberColumnWidth / schedule.slotCount;
-  const barWidth = slotWidth - 4;
-  const left =
-    memberIndex * memberColumnWidth + schedule.slotIndex * slotWidth + 2;
+  // 幅と位置の計算
+  let barWidth: number;
+  let left: number;
+
+  if (schedule.slotCount > 1) {
+    // 重なりあり → 分割幅
+    const slotWidth = memberColumnWidth / schedule.slotCount;
+    barWidth = slotWidth - 4;
+    left = memberIndex * memberColumnWidth + schedule.slotIndex * slotWidth + 2;
+  } else {
+    // 重なりなし → 全幅
+    barWidth = memberColumnWidth - 4;
+    left = memberIndex * memberColumnWidth + 2;
+  }
 
   const flagColors: Record<string, string> = {
     事務所: "bg-[#F8F8F8]",

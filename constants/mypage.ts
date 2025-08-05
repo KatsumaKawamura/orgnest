@@ -9,8 +9,8 @@ export const HOURS = [
   ...Array.from({ length: 6 }, (_, i) => String(i).padStart(2, "0")), // 0〜5
 ];
 
-export const MINUTES = Array.from({ length: 12 }, (_, i) =>
-  String(i * 5).padStart(2, "0")
+export const MINUTES = Array.from({ length: 4 }, (_, i) =>
+  String(i * 15).padStart(2, "0")
 );
 
 // デフォルト時刻

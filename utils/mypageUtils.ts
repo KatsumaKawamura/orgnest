@@ -2,7 +2,7 @@ import { MyPageCard } from "@/types/schedule";
 import { FLAG_OPTIONS } from "@/constants/mypage";
 
 export const createNewCard = (): MyPageCard => ({
-  id: Date.now(),
+  id: crypto.randomUUID(),
   startHour: "",
   startMinute: "",
   endHour: "",
@@ -12,10 +12,9 @@ export const createNewCard = (): MyPageCard => ({
   flag: FLAG_OPTIONS[0],
 });
 
-// 編集中のカード（複数可）を上にソート
-export const sortCards = (cards: MyPageCard[], editingCardIds: number[]) => {
+// 保存時のみ時間昇順でソート
+export const sortCards = (cards: MyPageCard[]): MyPageCard[] => {
   return cards.slice().sort((a, b) => {
-    // 時間を分に変換（未入力はInfinityで最後に）
     const aStart =
       a.startHour && a.startMinute
         ? Number(a.startHour) * 60 + Number(a.startMinute)
@@ -25,19 +24,19 @@ export const sortCards = (cards: MyPageCard[], editingCardIds: number[]) => {
         ? Number(b.startHour) * 60 + Number(b.startMinute)
         : Infinity;
 
-    if (aStart !== bStart) {
-      return aStart - bStart; // 時間昇順
-    }
-    return a.id - b.id; // 同時間ならID昇順
+    return aStart - bStart; // 時間昇順のみ
   });
 };
 
-export const toggleSelection = (selectedIds: number[], id: number) =>
+export const toggleSelection = (selectedIds: string[], id: string): string[] =>
   selectedIds.includes(id)
     ? selectedIds.filter((i) => i !== id)
     : [...selectedIds, id];
 
-export const selectAllOrClear = (selectedIds: number[], cards: MyPageCard[]) =>
+export const selectAllOrClear = (
+  selectedIds: string[],
+  cards: MyPageCard[]
+): string[] =>
   selectedIds.length === cards.length ? [] : cards.map((c) => c.id);
 
 export const validateTimeRange = (
