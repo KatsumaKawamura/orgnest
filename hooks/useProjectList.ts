@@ -1,85 +1,76 @@
-// /hooks/useProjectList.ts
 import { useState, useMemo } from "react";
 
-export function useProjectList(initial: string[]) {
-  const [projectList, setProjectList] = useState(initial);
+export interface Project {
+  id: number;
+  name: string;
+}
+
+export function useProjectList(initial: Project[]) {
+  const [projects, setProjects] = useState<Project[]>(initial);
   const [newProject, setNewProject] = useState("");
   const [deleteMode, setDeleteMode] = useState(false);
-  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
   const [showConfirmBulk, setShowConfirmBulk] = useState(false);
-  const [editingProject, setEditingProject] = useState<string | null>(null);
+  const [editingProject, setEditingProject] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  // 並び替え
+  // 名前順ソート
   const sortedProjects = useMemo(
-    () => [...projectList].sort((a, b) => a.localeCompare(b, "ja")),
-    [projectList]
+    () => [...projects].sort((a, b) => a.name.localeCompare(b.name, "ja")),
+    [projects]
   );
 
-  // 追加
-  const handleAdd = (onAdd: (name: string) => void) => {
-    const trimmed = newProject.trim();
-    if (trimmed) {
-      onAdd(trimmed);
-      setProjectList((prev) => [...prev, trimmed]); // ローカル更新
-      setNewProject("");
-    }
-  };
-
   // 編集開始
-  const startEdit = (p: string) => {
-    setEditingProject(p);
-    setEditValue(p);
+  const startEdit = (id: number, currentName: string) => {
+    setEditingProject(id);
+    setEditValue(currentName);
   };
 
-  // 編集確定
-  const confirmEdit = (
-    oldValue: string,
-    onRemove: (name: string) => void,
-    onReplace: (newList: string[]) => void
+  // 編集確定（更新 or 削除）
+  const confirmEdit = async (
+    id: number,
+    updateProject: (id: number, name: string) => Promise<Project | null>,
+    deleteProject: (id: number) => Promise<boolean>
   ) => {
     const trimmed = editValue.trim();
-    if (!trimmed) {
-      onRemove(oldValue);
-      setProjectList((prev) => prev.filter((p) => p !== oldValue)); // ローカル更新
-    } else if (trimmed !== oldValue) {
-      const newList = projectList.map((p) => (p === oldValue ? trimmed : p));
-      onReplace(newList);
-      setProjectList(newList); // ローカル更新
+    try {
+      if (!trimmed) {
+        // 空なら削除
+        const ok = await deleteProject(id);
+        if (ok) setProjects((prev) => prev.filter((p) => p.id !== id));
+      } else {
+        // 値があれば更新
+        const updated = await updateProject(id, trimmed);
+        if (updated)
+          setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      }
+    } catch (e) {
+      console.error("編集処理に失敗しました:", e);
+    } finally {
+      setEditingProject(null);
+      setEditValue("");
     }
-    setEditingProject(null);
-    setEditValue("");
   };
 
   // 選択切替
-  const toggleSelect = (p: string) => {
+  const toggleSelect = (id: number) => {
     setSelectedProjects((prev) =>
-      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
   // 全選択/解除
   const selectAllOrClear = () => {
-    if (selectedProjects.length === projectList.length) {
+    if (selectedProjects.length === projects.length) {
       setSelectedProjects([]);
     } else {
-      setSelectedProjects([...projectList]);
+      setSelectedProjects(projects.map((p) => p.id));
     }
   };
 
-  // 一括削除
-  const handleBulkRemove = (onReplace: (newList: string[]) => void) => {
-    const newList = projectList.filter((p) => !selectedProjects.includes(p));
-    onReplace(newList);
-    setProjectList(newList); // ローカル更新
-    setSelectedProjects([]);
-    setDeleteMode(false);
-    setShowConfirmBulk(false);
-  };
-
   return {
-    projectList,
-    setProjectList,
+    projects,
+    setProjects,
     newProject,
     setNewProject,
     deleteMode,
@@ -89,15 +80,12 @@ export function useProjectList(initial: string[]) {
     showConfirmBulk,
     setShowConfirmBulk,
     editingProject,
-    setEditingProject,
     editValue,
     setEditValue,
     sortedProjects,
-    handleAdd,
     startEdit,
-    confirmEdit,
+    confirmEdit, // ← ここでエクスポート
     toggleSelect,
     selectAllOrClear,
-    handleBulkRemove,
   };
 }
