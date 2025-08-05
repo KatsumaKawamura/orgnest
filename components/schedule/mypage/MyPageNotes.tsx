@@ -1,23 +1,21 @@
 "use client";
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { MyPageNotesProps } from "@/types/schedule";
 
-interface NotesProps {
-  notes: string;
-  isEditing: boolean;
-  onChange: (updated: { notes: string }) => void;
-}
-
-export default function Notes({ notes, isEditing, onChange }: NotesProps) {
+export default function MyPageNotes({
+  notes,
+  isEditing,
+  onChange,
+}: MyPageNotesProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div>
-      {/* 開閉ボタン */}
       <div className="mt-2">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="text-sm text-gray-800 hover:underline focus:outline-none flex items-center"
+          className="text-sm text-gray-800 hover:underline flex items-center"
         >
           {isOpen ? (
             <ChevronDown className="w-4 h-4 mr-1" />
@@ -28,7 +26,6 @@ export default function Notes({ notes, isEditing, onChange }: NotesProps) {
         </button>
       </div>
 
-      {/* 開いた時のテキストエリア */}
       {isOpen && (
         <div className="mt-2">
           <textarea

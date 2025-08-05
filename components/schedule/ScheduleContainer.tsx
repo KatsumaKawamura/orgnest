@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import MyPageContent from "@/components/schedule/MyPageContent";
+import MyPageContent from "@/components/schedule/mypage/MyPageContent";
 import TeamContent from "@/components/schedule/TeamContent";
-import ProjectContent from "@/components/schedule/ProjectContent";
+import ProjectListContent from "@/components/schedule/projectlist/ProjectListContent";
 
 export default function ScheduleContainer() {
   const [activeTab, setActiveTab] = useState<"team" | "mypage" | "project">(
@@ -84,11 +84,11 @@ export default function ScheduleContainer() {
       {activeTab === "mypage" && <MyPageContent projectList={projectList} />}
       {activeTab === "team" && <TeamContent />}
       {activeTab === "project" && (
-        <ProjectContent
+        <ProjectListContent
           projectList={projectList}
           onAdd={addProject}
-          onRemove={removeProject} // 単品削除
-          onReplace={replaceProjects} // まとめ削除
+          onRemove={removeProject}
+          onReplace={replaceProjects}
         />
       )}
     </main>

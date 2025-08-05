@@ -7,8 +7,8 @@ import { Trash2 } from "lucide-react";
 interface ProjectContentProps {
   projectList: string[];
   onAdd: (name: string) => void;
-  onRemove: (name: string) => void; // 単品削除
-  onReplace: (newList: string[]) => void; // まとめ削除
+  onRemove: (name: string) => void;
+  onReplace: (newList: string[]) => void;
 }
 
 export default function ProjectContent({
@@ -66,13 +66,9 @@ export default function ProjectContent({
 
   return (
     <div className="p-4 bg-[#ece9e5] max-w-md relative">
-      {/* === 見出し + ボタン群 === */}
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-lg font-semibold text-gray-800">Project List</h1>
-
-        {/* 左：戻る/選択　右：削除（ダミー含む） */}
         <div className="flex space-x-2 w-[220px] justify-end">
-          {/* 左側: 戻る or 選択（幅固定で位置合わせ） */}
           <button
             onClick={() => setDeleteMode(!deleteMode)}
             className="flex items-center justify-center w-[96px] px-4 py-2 rounded bg-gray-300 text-gray-800 hover:bg-gray-400"
@@ -80,8 +76,6 @@ export default function ProjectContent({
             <Trash2 className="w-4 h-4 mr-2 text-gray-800" />
             {deleteMode ? "戻る" : "選択"}
           </button>
-
-          {/* 右側: 削除（削除モードのみ表示、通常モードはダミー） */}
           {deleteMode ? (
             <div className="relative">
               <button
@@ -92,19 +86,23 @@ export default function ProjectContent({
               </button>
               {showConfirmBulk && (
                 <ConfirmDialog
-                  message="削除しますか？"
+                  message="選択したプロジェクトを削除しますか？"
                   onCancel={() => setShowConfirmBulk(false)}
                   onConfirm={handleBulkRemove}
+                  confirmLabel="削除"
+                  cancelLabel="戻る"
+                  confirmClassName="px-3 py-1 text-sm bg-red-600 text-white hover:bg-red-700 border border-gray-800 rounded"
+                  cancelClassName="px-3 py-1 text-sm text-gray-600 hover:bg-white border border-gray-800 rounded"
+                  position="absolute"
                 />
               )}
             </div>
           ) : (
-            <div className="w-[72px]" /> // ダミーで削除ボタン分のスペースを確保
+            <div className="w-[72px]" />
           )}
         </div>
       </div>
 
-      {/* === 入力欄 + 追加ボタン === */}
       <div className="flex space-x-2 mb-4">
         <input
           type="text"
@@ -122,7 +120,6 @@ export default function ProjectContent({
         </button>
       </div>
 
-      {/* 一括選択ボタン */}
       {deleteMode && sortedProjects.length > 0 && (
         <div className="mb-2">
           <button
@@ -130,13 +127,12 @@ export default function ProjectContent({
             className="px-3 py-1 text-sm bg-white border border-gray-800 text-gray-800 rounded hover:bg-gray-100"
           >
             {selectedProjects.length === sortedProjects.length
-              ? "全解除"
-              : "全選択"}
+              ? "全て解除"
+              : "全て選択"}
           </button>
         </div>
       )}
 
-      {/* === プロジェクト一覧 === */}
       <ul className="space-y-2">
         {sortedProjects.map((p: string) => (
           <li
@@ -164,9 +160,14 @@ export default function ProjectContent({
                 {confirmTarget === p && (
                   <div className="absolute top-full left-0 mt-1 z-50">
                     <ConfirmDialog
-                      message={`削除しますか？`}
+                      message={`「${p}」を削除しますか？`}
                       onCancel={() => setConfirmTarget(null)}
                       onConfirm={handleSingleRemove}
+                      confirmLabel="削除"
+                      cancelLabel="戻る"
+                      confirmClassName="px-3 py-1 text-sm bg-red-600 text-white hover:bg-red-700 border border-gray-800 rounded"
+                      cancelClassName="px-3 py-1 text-sm text-gray-600 hover:bg-white border border-gray-800 rounded"
+                      position="absolute"
                     />
                   </div>
                 )}
