@@ -1,6 +1,9 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Schedule, Member } from "@/types/schedule";
+import { calculateBarPosition } from "@/utils/timeline";
+import { FLAG_COLORS, BAR_PADDING } from "@/constants/timeline";
+import Tooltip from "@/components/common/Tooltip";
 
 interface TimelineBarProps {
   schedule: Schedule;
@@ -21,35 +24,24 @@ export default function TimelineBar({
   const barRef = useRef<HTMLDivElement>(null);
 
   const memberIndex = members.findIndex((m) => m.id === schedule.memberId);
-  const startParts = schedule.start.split(":").map(Number);
-  const endParts = schedule.end.split(":").map(Number);
+  const {
+    top,
+    height,
+    width: barWidth,
+    left,
+  } = calculateBarPosition(
+    schedule.start,
+    schedule.end,
+    startHour,
+    pxPerMinute,
+    memberIndex,
+    memberColumnWidth,
+    schedule.slotIndex,
+    schedule.slotCount,
+    BAR_PADDING
+  );
 
-  const startMinutes = (startParts[0] - startHour) * 60 + startParts[1];
-  const endMinutes = (endParts[0] - startHour) * 60 + endParts[1];
-  const top = startMinutes * pxPerMinute;
-  const height = (endMinutes - startMinutes) * pxPerMinute;
-
-  // 幅と位置の計算
-  let barWidth: number;
-  let left: number;
-
-  if (schedule.slotCount > 1) {
-    // 重なりあり → 分割幅
-    const slotWidth = memberColumnWidth / schedule.slotCount;
-    barWidth = slotWidth - 4;
-    left = memberIndex * memberColumnWidth + schedule.slotIndex * slotWidth + 2;
-  } else {
-    // 重なりなし → 全幅
-    barWidth = memberColumnWidth - 4;
-    left = memberIndex * memberColumnWidth + 2;
-  }
-
-  const flagColors: Record<string, string> = {
-    事務所: "bg-[#F8F8F8]",
-    現場: "bg-[#E99F67]",
-    打ち合わせ: "bg-[#8AB5A3]",
-  };
-  const bgColor = flagColors[schedule.flag] || "bg-gray-200";
+  const bgColor = FLAG_COLORS[schedule.flag] || FLAG_COLORS.default;
 
   const toggleTooltip = () => setShowTooltip((prev) => !prev);
 
@@ -60,12 +52,8 @@ export default function TimelineBar({
         setShowTooltip(false);
       }
     }
-    if (showTooltip) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    if (showTooltip) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showTooltip]);
 
   return (
@@ -89,16 +77,19 @@ export default function TimelineBar({
         </div>
       )}
 
-      {showTooltip && (
-        <div
-          className="absolute z-50 -top-14 left-1/2 -translate-x-1/2 w-max max-w-xs px-2 py-1 bg-gray-800 text-white text-xs rounded shadow border-2 border-white
-                        after:content-[''] after:absolute after:top-full after:left-[30%] after:-translate-x-1/2 
-                        after:border-4 after:border-transparent after:border-t-gray-800"
-        >
-          <div className="font-semibold">{schedule.project}</div>
-          {schedule.notes && <div>{schedule.notes}</div>}
-        </div>
-      )}
+      {
+        <Tooltip
+          content={
+            <>
+              <div className="font-semibold">{schedule.project}</div>
+              {schedule.notes && <div>{schedule.notes}</div>}
+            </>
+          }
+          position="top"
+          visible={showTooltip} // ← 既存の状態をそのまま渡す
+          delay={200}
+        />
+      }
     </div>
   );
 }

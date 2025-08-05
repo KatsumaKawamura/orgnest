@@ -1,4 +1,5 @@
 "use client";
+import { TIME_LABEL_WIDTH } from "@/constants/timeline";
 
 interface TimelineGridProps {
   startHour: number;
@@ -42,10 +43,11 @@ export default function TimelineGrid({
           />
           {/* 時間ラベル */}
           <div
-            className="absolute -left-12 text-sm text-gray-700"
+            className="absolute text-sm text-gray-700"
             style={{
+              left: `-${TIME_LABEL_WIDTH}px`, // ラベル列の幅分左にずらす
               top: `${(hour - startHour) * 60 * pxPerMinute - 8}px`,
-              width: "40px",
+              width: `${TIME_LABEL_WIDTH - 8}px`, // ちょい内側に
               textAlign: "right",
             }}
           >
