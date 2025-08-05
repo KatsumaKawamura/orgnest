@@ -1,17 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Schedule, Member } from "@/types/schedule";
-import { calculateBarPosition } from "@/utils/timeline";
-import { FLAG_COLORS, BAR_PADDING } from "@/constants/timeline";
+import { calculateBarPosition, getFlagColor } from "@/utils/timeline";
+import { BAR_PADDING } from "@/constants/timeline";
 import Tooltip from "@/components/common/Tooltip";
-
-interface TimelineBarProps {
-  schedule: Schedule;
-  members: Member[];
-  startHour: number;
-  pxPerMinute: number;
-  memberColumnWidth: number;
-}
+import { TimelineBarProps } from "@/types/timeline";
 
 export default function TimelineBar({
   schedule,
@@ -41,11 +34,10 @@ export default function TimelineBar({
     BAR_PADDING
   );
 
-  const bgColor = FLAG_COLORS[schedule.flag] || FLAG_COLORS.default;
+  const bgColor = getFlagColor(schedule.flag);
 
   const toggleTooltip = () => setShowTooltip((prev) => !prev);
 
-  // 外側クリックで閉じる
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (barRef.current && !barRef.current.contains(e.target as Node)) {
@@ -77,19 +69,16 @@ export default function TimelineBar({
         </div>
       )}
 
-      {
-        <Tooltip
-          content={
-            <>
-              <div className="font-semibold">{schedule.project}</div>
-              {schedule.notes && <div>{schedule.notes}</div>}
-            </>
-          }
-          position="top"
-          visible={showTooltip} // ← 既存の状態をそのまま渡す
-          delay={200}
-        />
-      }
+      <Tooltip
+        content={
+          <>
+            <div className="font-semibold">{schedule.project}</div>
+            {schedule.notes && <div>{schedule.notes}</div>}
+          </>
+        }
+        position="top"
+        visible={showTooltip}
+      />
     </div>
   );
 }

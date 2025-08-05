@@ -3,8 +3,9 @@ import TimelineGrid from "./TimelineGrid";
 import TimelineBar from "./TimelineBar";
 import TimelineHeader from "./TimelineHeader";
 import { sampleMembers, sampleSchedules } from "./sampleData";
-import { Schedule } from "@/types/schedule";
+import { Schedule, Member } from "@/types/schedule";
 import { assignSlots } from "@/utils/scheduleUtils";
+import { TimelineViewProps } from "@/types/timeline";
 import {
   TIME_LABEL_WIDTH,
   DEFAULT_MEMBER_COLUMN_WIDTH,
@@ -13,10 +14,10 @@ import {
   DEFAULT_END_HOUR,
 } from "@/constants/timeline";
 
-export default function TimelineView() {
-  const members = sampleMembers;
-  const schedules: Schedule[] = sampleSchedules;
-
+export default function TimelineView({
+  members = sampleMembers,
+  schedules = sampleSchedules,
+}: TimelineViewProps) {
   const startHour = DEFAULT_START_HOUR;
   const endHour = DEFAULT_END_HOUR;
   const pxPerMinute = DEFAULT_PX_PER_MINUTE;
@@ -26,10 +27,10 @@ export default function TimelineView() {
 
   return (
     <div className="overflow-x-auto overflow-y-hidden">
-      {/* 1行目: ヘッダー */}
+      {/* ヘッダー */}
       <TimelineHeader members={members} memberColumnWidth={memberColumnWidth} />
 
-      {/* 2行目: タイムライン */}
+      {/* タイムライン */}
       <div
         className="grid min-w-max"
         style={{

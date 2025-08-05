@@ -1,11 +1,6 @@
 "use client";
-import { Member } from "@/types/schedule";
 import { TIME_LABEL_WIDTH } from "@/constants/timeline";
-
-interface TimelineHeaderProps {
-  members: Member[];
-  memberColumnWidth: number;
-}
+import { TimelineHeaderProps } from "@/types/timeline";
 
 export default function TimelineHeader({
   members,

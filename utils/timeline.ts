@@ -1,3 +1,5 @@
+import { FLAG_COLORS } from "@/constants/timeline";
+
 // utils/timeline.ts
 export function calculateBarPosition(
   start: string,
@@ -25,4 +27,8 @@ export function calculateBarPosition(
     memberIndex * memberColumnWidth + slotIndex * slotWidth + padding;
 
   return { top, height, width, left };
+}
+
+export function getFlagColor(flag: string): string {
+  return FLAG_COLORS[flag] || FLAG_COLORS.default;
 }
