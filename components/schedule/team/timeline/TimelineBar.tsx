@@ -16,7 +16,7 @@ export default function TimelineBar({
   const [showTooltip, setShowTooltip] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
 
-  const memberIndex = members.findIndex((m) => m.id === schedule.memberId);
+  const memberIndex = members.findIndex((m) => m.id === schedule.userId);
   const {
     top,
     height,

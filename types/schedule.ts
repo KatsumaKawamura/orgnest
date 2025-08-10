@@ -6,24 +6,25 @@ export interface Member {
   name: string;
 }
 
+// DBから取得する生データ（Supabaseレスポンス）
 export interface ScheduleDB {
   id: number;
-  member_id: number;
-  start: string;
-  end: string;
+  user_id: string; // ← member_id を user_id に変更
+  start: string; // "HH:MM:SS"
+  end: string; // "HH:MM:SS"
   flag: string;
   project_name: string;
   notes: string;
-  members: Member;
 }
 
+// フロントで使う型（UI用に整形済み）
 export interface Schedule {
   id: number;
-  memberId: number;
-  start: string;
-  end: string;
+  userId: string; // ← camelCase で userId
+  start: string; // "HH:MM"
+  end: string; // "HH:MM"
   flag: string;
-  project: string;
+  project: string; // project_name の整形済み
   notes: string;
   slotIndex: number;
   slotCount: number;
@@ -39,6 +40,16 @@ export interface MyPageCard {
   project: string;
   notes: string;
   flag: string;
+}
+
+// 新規作成用入力型
+export interface ScheduleCreateInput {
+  user_id: string;
+  project_name: string;
+  start: string; // "HH:MM:SS"
+  end: string; // "HH:MM:SS"
+  flag: string;
+  notes: string;
 }
 
 // --- MyPage系コンポーネント共通Props ---
