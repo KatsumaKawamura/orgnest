@@ -8,6 +8,7 @@ import FadeModalWrapper, {
   useFadeModal,
 } from "@/components/common/FadeModalWrapper";
 import Input from "@/components/common/Input";
+import useModalActionRoving from "@/hooks/useModalActionRoving"; // ← 追加
 
 interface LoginModalProps {
   onClose: () => void;
@@ -21,7 +22,6 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   const { close } = useFadeModal();
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
-
   const [submitting, setSubmitting] = useState(false);
 
   const [showProgress, setShowProgress] = useState(false);
@@ -33,6 +33,13 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     null
   );
 
+  // ←/→ で外から引き込み & 行内 roving
+  // 入力中でも左右で引き込みたい要件なので overrideInput: true（既定のまま）
+  const { rowRef, onRootKeyDown } = useModalActionRoving({
+    loop: true,
+    overrideInput: true,
+  });
+
   const handleCancel = () => {
     close();
   };
@@ -40,18 +47,18 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   const handleLogin = async () => {
     if (submitting) return;
 
-    // ✅ ここで入力不足を即時チェック（Progressは出さずにInfoModalだけ表示）
+    // 入力不足は即座に InfoModal
     if (userId.trim() === "" || password.trim() === "") {
       setInfo({
         title: "ログイン失敗",
         message: "USER_ID と PASSWORD を入力してください。",
       });
-      return; // 早期終了：以降のProgress処理に入らない
+      return;
     }
 
     setSubmitting(true);
 
-    // 以降は通信が走るのでProgressを表示
+    // 通信時は Progress 表示
     setProgressStatus("processing");
     setShowProgress(true);
     const start = performance.now();
@@ -94,7 +101,13 @@ export default function LoginModal({ onClose }: LoginModalProps) {
 
   return (
     <>
-      <div className="bg-white text-gray-800 p-6 rounded shadow-lg w-80">
+      {/* ←/→ を拾うのは“モーダルのパネル全体” */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="bg-white text-gray-800 p-6 rounded shadow-lg w-80"
+        onKeyDown={onRootKeyDown} // ← 追加: 外からの引き込み & 行内 roving
+      >
         <h2 className="text-lg font-semibold mb-4">ログイン</h2>
 
         <Input
@@ -114,24 +127,33 @@ export default function LoginModal({ onClose }: LoginModalProps) {
           disabled={submitting}
         />
 
-        <div className="flex justify-between">
+        {/* アクション行（ボタン群） */}
+        <div
+          ref={rowRef} // ← 追加
+          role="group"
+          aria-orientation="horizontal"
+          className="flex justify-between"
+        >
           <Button
             variant="secondary"
             size="md"
             onClick={handleCancel}
             disabled={submitting}
             type="button"
-            data-enter-ignore // ← Enterの自動ターゲットから除外
+            data-enter-ignore
+            data-action="cancel" // ← 追加: 左からの引き込み先
           >
             キャンセル
           </Button>
+
           <Button
             variant="primary"
             size="md"
             onClick={handleLogin}
             disabled={submitting}
             type="button"
-            data-enter // ← Enterは必ずこちらを押す
+            data-enter
+            data-action="primary" // ← 追加: 右からの引き込み先
           >
             ログイン
           </Button>
