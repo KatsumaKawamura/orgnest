@@ -1,7 +1,7 @@
 // components/common/ProgressModal.tsx
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 import Button from "@/components/common/Button";
 import { useFadeModal } from "@/components/common/FadeModalWrapper";
 
@@ -29,6 +29,17 @@ export default function ProgressModal({
   const titleId = `progress-title-${baseId}`;
   const descId = `progress-desc-${baseId}`;
   const processing = status === "processing";
+
+  // OKボタンを done 出現時にフォーカス
+  const okRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!processing) {
+      // レンダリング完了後にフォーカス
+      (queueMicrotask ?? ((cb: () => void) => setTimeout(cb, 0)))(() =>
+        okRef.current?.focus()
+      );
+    }
+  }, [processing]);
 
   const handleConfirm = () => {
     close();
@@ -96,6 +107,7 @@ export default function ProgressModal({
         }}
       >
         <Button
+          ref={okRef}
           type="button"
           variant="primary"
           size="responsive"
