@@ -1,5 +1,6 @@
 // components/auth/RegisterFormCard.tsx
 "use client";
+import { Ref } from "react";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import FieldHint from "@/components/common/FieldHint";
@@ -26,6 +27,13 @@ type Props = {
   onCancel: () => void;
   onSubmit: () => void;
   submitDisabled: boolean;
+
+  // ✅ React.Ref<HTMLDivElement> なら
+  //    - MutableRefObject<HTMLDivElement | null>
+  //    - RefCallback<HTMLDivElement>
+  //    の両方を受け取れる
+  actionRowRef: Ref<HTMLDivElement>;
+  onRootKeyDown: (e: React.KeyboardEvent | KeyboardEvent) => void;
 };
 
 export default function RegisterFormCard({
@@ -38,11 +46,19 @@ export default function RegisterFormCard({
   onCancel,
   onSubmit,
   submitDisabled,
+  actionRowRef,
+  onRootKeyDown,
 }: Props) {
   const { userId, password, confirmPassword, contact, userName } = values;
 
   return (
-    <div className="bg-white p-6 rounded shadow-lg w-80 text-gray-800">
+    <div
+      className="bg-white p-6 rounded shadow-lg w-80 text-gray-800"
+      role="dialog"
+      aria-modal="true"
+      // ← モーダルパネルで ←/→ を拾う（外→引き込み & 行内 roving）
+      onKeyDown={onRootKeyDown}
+    >
       <h2 className="text-lg font-semibold mb-4">アカウント作成</h2>
 
       {/* USER_ID */}
@@ -143,13 +159,20 @@ export default function RegisterFormCard({
         </p>
       </div>
 
-      <div className="flex justify-between">
+      {/* アクション行：左右 roving 対象 */}
+      <div
+        ref={actionRowRef}
+        role="group"
+        aria-orientation="horizontal"
+        className="flex justify-between"
+      >
         <Button
           variant="secondary"
           size="md"
           onClick={onCancel}
           disabled={submitting}
           data-enter-ignore
+          data-action="cancel" // ← 左：キャンセル
         >
           キャンセル
         </Button>
@@ -160,6 +183,7 @@ export default function RegisterFormCard({
           disabled={submitDisabled}
           aria-disabled={submitDisabled}
           data-enter
+          data-action="primary" // ← 右：登録（無効時は hook が自動スキップ）
         >
           登録
         </Button>

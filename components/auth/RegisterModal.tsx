@@ -10,6 +10,7 @@ import ProgressModal from "@/components/common/ProgressModal";
 import RegisterFormCard from "@/components/auth/RegisterFormCard";
 import { useRegisterForm } from "@/hooks/useRegisterForm";
 import { useProgressOverlay } from "@/hooks/useProgressOverlay";
+import useModalActionRoving from "@/hooks/useModalActionRoving"; // ← 追加
 
 interface RegisterModalProps {
   onClose: () => void;
@@ -31,6 +32,13 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
 
   // 連打防止・フォームロック
   const [submitting, setSubmitting] = useState(false);
+
+  // ←/→：外から“引き込み” & 行内 roving（右＝登録、左＝キャンセル）
+  // 登録フォームは「入力中でも左右で引き込みたい」要件なので overrideInput: true のまま
+  const { rowRef, onRootKeyDown } = useModalActionRoving({
+    loop: true,
+    overrideInput: true,
+  });
 
   const handleCancel = () => {
     close(); // 親ラッパーのフェード閉鎖
@@ -99,6 +107,9 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
         onCancel={handleCancel}
         onSubmit={handleRegister}
         submitDisabled={submitting || form.hasBlockingError || form.checking}
+        // ← 追加：左右キー対応のために渡す
+        actionRowRef={rowRef}
+        onRootKeyDown={onRootKeyDown}
       />
 
       {/* 成功フロー：Progress（最低 800ms 表示） */}

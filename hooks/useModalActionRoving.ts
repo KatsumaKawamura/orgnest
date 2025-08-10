@@ -20,8 +20,8 @@ const isEditable = (el: Element | null) => {
 export function useModalActionRoving(options: Options = {}) {
   const { loop = true, overrideInput = true } = options;
 
-  // アクション行（ボタン群）のラッパー
-  const rowRef = useRef<HTMLDivElement | null>(null);
+  // ✅ 要素型のみを指定。current の型は自動で HTMLDivElement | null
+  const rowRef = useRef<HTMLDivElement>(null);
 
   const focusFirstEnabled = (buttons: HTMLButtonElement[]) => {
     const b = buttons.find((btn) => !btn.disabled);
