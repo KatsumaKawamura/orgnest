@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+// Pages Router
+import { useRouter } from "next/router";
 import Button from "@/components/common/Button";
 import InfoModal from "@/components/common/InfoModal";
 import ProgressModal from "@/components/common/ProgressModal";
@@ -8,7 +9,8 @@ import FadeModalWrapper, {
   useFadeModal,
 } from "@/components/common/FadeModalWrapper";
 import Input from "@/components/common/Input";
-import useModalActionRoving from "@/hooks/useModalActionRoving"; // ← 追加
+import useModalActionRoving from "@/hooks/useModalActionRoving";
+import useArrowFormNav from "@/hooks/useArrowFormNav"; // ← 追加
 
 interface LoginModalProps {
   onClose: () => void;
@@ -33,11 +35,17 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     null
   );
 
-  // ←/→ で外から引き込み & 行内 roving
-  // 入力中でも左右で引き込みたい要件なので overrideInput: true（既定のまま）
+  // ←/→：外から引き込み & 行内 roving（ボタン用）
   const { rowRef, onRootKeyDown } = useModalActionRoving({
     loop: true,
     overrideInput: true,
+  });
+
+  // ↑/↓：フォーム間ナビ（常に奪う・外から↑=一番上/↓=一番下・フォーカス時は末尾にキャレット）
+  const { formRef, onKeyDown: onFormKeyDown } = useArrowFormNav({
+    loop: true,
+    pullIn: true,
+    caretOnFocus: "end",
   });
 
   const handleCancel = () => {
@@ -47,7 +55,6 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   const handleLogin = async () => {
     if (submitting) return;
 
-    // 入力不足は即座に InfoModal
     if (userId.trim() === "" || password.trim() === "") {
       setInfo({
         title: "ログイン失敗",
@@ -57,8 +64,6 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     }
 
     setSubmitting(true);
-
-    // 通信時は Progress 表示
     setProgressStatus("processing");
     setShowProgress(true);
     const start = performance.now();
@@ -68,6 +73,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ login_id: userId, password }),
+        credentials: "same-origin", // ← 明示
       });
       const data = await res.json();
 
@@ -94,19 +100,23 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     }
   };
 
+  // push → close（Pages Router）
   const handleProgressConfirm = () => {
-    close();
     router.push("/mypage");
+    setTimeout(() => close(), 0);
   };
 
   return (
     <>
-      {/* ←/→ を拾うのは“モーダルのパネル全体” */}
       <div
+        ref={formRef} // ← 追加：↑/↓の探索範囲
         role="dialog"
         aria-modal="true"
         className="bg-white text-gray-800 p-6 rounded shadow-lg w-80"
-        onKeyDown={onRootKeyDown} // ← 追加: 外からの引き込み & 行内 roving
+        onKeyDown={(e) => {
+          onFormKeyDown(e); // ↑/↓ 最優先
+          onRootKeyDown(e); // ←/→（ボタン roving）
+        }}
       >
         <h2 className="text-lg font-semibold mb-4">ログイン</h2>
 
@@ -127,9 +137,8 @@ export default function LoginModal({ onClose }: LoginModalProps) {
           disabled={submitting}
         />
 
-        {/* アクション行（ボタン群） */}
         <div
-          ref={rowRef} // ← 追加
+          ref={rowRef}
           role="group"
           aria-orientation="horizontal"
           className="flex justify-between"
@@ -141,7 +150,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
             disabled={submitting}
             type="button"
             data-enter-ignore
-            data-action="cancel" // ← 追加: 左からの引き込み先
+            data-action="cancel"
           >
             キャンセル
           </Button>
@@ -153,14 +162,13 @@ export default function LoginModal({ onClose }: LoginModalProps) {
             disabled={submitting}
             type="button"
             data-enter
-            data-action="primary" // ← 追加: 右からの引き込み先
+            data-action="primary"
           >
             ログイン
           </Button>
         </div>
       </div>
 
-      {/* 成功時の演出：ProgressModal（最低表示あり） */}
       {showProgress && (
         <FadeModalWrapper
           onClose={() => setShowProgress(false)}
@@ -178,7 +186,6 @@ export default function LoginModal({ onClose }: LoginModalProps) {
         </FadeModalWrapper>
       )}
 
-      {/* エラー通知：入力不足・失敗・通信エラー */}
       {info && (
         <FadeModalWrapper onClose={() => setInfo(null)} durationOpen={450}>
           <InfoModal

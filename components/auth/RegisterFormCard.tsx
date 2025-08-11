@@ -4,6 +4,7 @@ import { Ref } from "react";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import FieldHint from "@/components/common/FieldHint";
+import useArrowFormNav from "@/hooks/useArrowFormNav"; // ← 追加
 
 type Props = {
   values: {
@@ -28,10 +29,7 @@ type Props = {
   onSubmit: () => void;
   submitDisabled: boolean;
 
-  // ✅ React.Ref<HTMLDivElement> なら
-  //    - MutableRefObject<HTMLDivElement | null>
-  //    - RefCallback<HTMLDivElement>
-  //    の両方を受け取れる
+  // React.Ref<HTMLDivElement> なので MutableRefObject / Callback 両対応
   actionRowRef: Ref<HTMLDivElement>;
   onRootKeyDown: (e: React.KeyboardEvent | KeyboardEvent) => void;
 };
@@ -51,13 +49,24 @@ export default function RegisterFormCard({
 }: Props) {
   const { userId, password, confirmPassword, contact, userName } = values;
 
+  // ↑/↓：常に奪って移動・外から↑=最上/↓=最下・フォーカス時は末尾にキャレット
+  const { formRef, onKeyDown: onFormKeyDown } = useArrowFormNav({
+    loop: true,
+    pullIn: true,
+    caretOnFocus: "end",
+  });
+
   return (
     <div
+      ref={formRef} // ← 追加：↑/↓ の探索範囲（フォーム全体）
       className="bg-white p-6 rounded shadow-lg w-80 text-gray-800"
       role="dialog"
       aria-modal="true"
-      // ← モーダルパネルで ←/→ を拾う（外→引き込み & 行内 roving）
-      onKeyDown={onRootKeyDown}
+      // ← キー合成：↑/↓ を先に、←/→（roving）を後に
+      onKeyDown={(e) => {
+        onFormKeyDown(e);
+        onRootKeyDown(e);
+      }}
     >
       <h2 className="text-lg font-semibold mb-4">アカウント作成</h2>
 
@@ -172,7 +181,7 @@ export default function RegisterFormCard({
           onClick={onCancel}
           disabled={submitting}
           data-enter-ignore
-          data-action="cancel" // ← 左：キャンセル
+          data-action="cancel" // 左：キャンセル
         >
           キャンセル
         </Button>
@@ -183,7 +192,7 @@ export default function RegisterFormCard({
           disabled={submitDisabled}
           aria-disabled={submitDisabled}
           data-enter
-          data-action="primary" // ← 右：登録（無効時は hook が自動スキップ）
+          data-action="primary" // 右：登録（無効は hook が自動スキップ）
         >
           登録
         </Button>
