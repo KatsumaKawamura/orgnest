@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/router"; // ← Pages Router
 import FadeModalWrapper, {
   useFadeModal,
 } from "@/components/common/FadeModalWrapper";
@@ -10,19 +11,20 @@ import ProgressModal from "@/components/common/ProgressModal";
 import RegisterFormCard from "@/components/auth/RegisterFormCard";
 import { useRegisterForm } from "@/hooks/useRegisterForm";
 import { useProgressOverlay } from "@/hooks/useProgressOverlay";
-import useModalActionRoving from "@/hooks/useModalActionRoving"; // ← 追加
+import useModalActionRoving from "@/hooks/useModalActionRoving";
 
 interface RegisterModalProps {
   onClose: () => void;
 }
 
 export default function RegisterModal({ onClose }: RegisterModalProps) {
+  const router = useRouter();
   const { close } = useFadeModal();
 
   // 入力 + リアルタイム検証（必須 / 一致 / 可用性）
   const form = useRegisterForm();
 
-  // 進捗オーバーレイ（最低 800ms 表示は hook 側で担保）
+  // 進捗オーバーレイ（最低表示時間は hook 側で担保）
   const { show, setShow, status, runWithMinDelay } = useProgressOverlay();
 
   // API 失敗などの通知用
@@ -34,14 +36,13 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
   const [submitting, setSubmitting] = useState(false);
 
   // ←/→：外から“引き込み” & 行内 roving（右＝登録、左＝キャンセル）
-  // 登録フォームは「入力中でも左右で引き込みたい」要件なので overrideInput: true のまま
   const { rowRef, onRootKeyDown } = useModalActionRoving({
     loop: true,
     overrideInput: true,
   });
 
   const handleCancel = () => {
-    close(); // 親ラッパーのフェード閉鎖
+    close();
     onClose?.();
   };
 
@@ -50,7 +51,7 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
 
     setSubmitting(true);
 
-    // Progress を表示しつつ最低 800ms を担保して /api/register を実行
+    // Progress を表示しつつ最低表示時間を担保して /api/register を実行
     const { ok, error } = await runWithMinDelay(async () => {
       const res = await fetch("/api/register", {
         method: "POST",
@@ -61,6 +62,7 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
           contact: form.contact,
           user_name: form.userName,
         }),
+        credentials: "same-origin", // 明示（環境差吸収）
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "登録に失敗しました");
@@ -70,21 +72,49 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     setSubmitting(false);
 
     if (!ok) {
-      // 失敗時：Progress は hook 側で閉じ済み。Info を開く（開きは少し長めで柔らかく）
+      // 失敗時：Progress は hook 側で閉じ済。Info を開く
       setInfo({ title: "登録失敗", message: (error as Error).message });
     }
-    // 成功時は Progress 側が "done" 表示になる → OK で閉じるフローへ
+    // 成功時：Progress 側が "done" 表示 → OK で onConfirm が呼ばれる
   };
 
-  const handleProgressConfirm = () => {
-    // 登録完了 → OK：親モーダルを閉じる（必要なら遷移はここで）
-    close();
-    onClose?.();
+  // ✅ 登録完了 → OK：自動ログイン → 遷移（push→close の順）
+  const handleProgressConfirm = async () => {
+    try {
+      // まず自動ログイン（登録と同じ認証情報で）
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          login_id: form.userId,
+          password: form.password,
+        }),
+        credentials: "same-origin",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || "自動ログインに失敗しました");
+
+      // セッション発行が成功したら遷移
+      router.push("/mypage");
+
+      // 遷移でアンマウントされる想定だが、保険で次フレーム close
+      setTimeout(() => {
+        close();
+        onClose?.();
+      }, 0);
+    } catch (e: any) {
+      // 自動ログインだけ失敗した場合：Progress を閉じて Info で案内
+      setShow(false);
+      setInfo({
+        title: "自動ログイン失敗",
+        message: e?.message ?? "登録は完了しましたが、ログインに失敗しました。",
+      });
+    }
   };
 
   return (
     <>
-      {/* 入力フォーム（見た目コンポーネントに委譲） */}
+      {/* 入力フォーム */}
       <RegisterFormCard
         values={{
           userId: form.userId,
@@ -107,12 +137,11 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
         onCancel={handleCancel}
         onSubmit={handleRegister}
         submitDisabled={submitting || form.hasBlockingError || form.checking}
-        // ← 追加：左右キー対応のために渡す
         actionRowRef={rowRef}
         onRootKeyDown={onRootKeyDown}
       />
 
-      {/* 成功フロー：Progress（最低 800ms 表示） */}
+      {/* 成功フロー：Progress（最低表示あり） */}
       {show && (
         <FadeModalWrapper
           onClose={() => setShow(false)}
@@ -130,7 +159,7 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
         </FadeModalWrapper>
       )}
 
-      {/* 失敗フロー：Info（開き長めで切替を柔らかく） */}
+      {/* 失敗フロー：Info */}
       {info && (
         <FadeModalWrapper onClose={() => setInfo(null)} durationOpen={650}>
           <InfoModal
