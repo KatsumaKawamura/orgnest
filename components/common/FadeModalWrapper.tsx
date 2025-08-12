@@ -60,7 +60,20 @@ function composeRefs<T>(...refs: (Ref<T> | undefined)[]) {
   };
 }
 
-// 入力候補（useArrowFormNav と揃える）
+// ====== ★ スタック管理（ここがポイント） ======
+let MODAL_OPEN_COUNT = 0;
+function applyBackdropState() {
+  const root = document.getElementById("__next") as any;
+  const hasOpen = MODAL_OPEN_COUNT > 0;
+  if (root) root.inert = hasOpen;
+  if (hasOpen) {
+    document.body.setAttribute("data-modal-open", "1");
+  } else {
+    document.body.removeAttribute("data-modal-open");
+  }
+}
+// ================================
+
 const FIELDS_SELECTOR = [
   'input:not([type="hidden"]):not([disabled]):not([readonly])',
   "select:not([disabled])",
@@ -129,23 +142,14 @@ export default function FadeModalWrapper({
   // 背面スクロールロック（body補正あり）
   useScrollLock();
 
-  // 背面キー処理用フラグ：body に data-modal-open を付与/解除
+  // ★ 背面の inert / data-modal-open をスタック管理で制御
   useEffect(() => {
-    if (visible) {
-      document.body.setAttribute("data-modal-open", "1");
-    } else {
-      document.body.removeAttribute("data-modal-open");
-    }
-    return () => document.body.removeAttribute("data-modal-open");
-  }, [visible]);
-
-  // 背面を inert 化（フォーカス＆イベントを無効化）
-  useEffect(() => {
-    const root = document.getElementById("__next");
-    if (!root) return;
-    (root as any).inert = !!visible;
+    if (!visible) return;
+    MODAL_OPEN_COUNT += 1;
+    applyBackdropState();
     return () => {
-      (root as any).inert = false;
+      MODAL_OPEN_COUNT = Math.max(0, MODAL_OPEN_COUNT - 1);
+      applyBackdropState();
     };
   }, [visible]);
 
@@ -194,7 +198,10 @@ export default function FadeModalWrapper({
         root.querySelector<HTMLElement>(
           'button[type="submit"]:not([disabled])'
         ) ||
-        root.querySelector<HTMLElement>("button:not([disabled])");
+        // ← ここを変更：data-enter-ignore と aria-disabled も除外
+        root.querySelector<HTMLElement>(
+          'button:not([disabled]):not([aria-disabled="true"]):not([data-enter-ignore])'
+        );
 
       if (target) {
         e.preventDefault();
@@ -225,9 +232,7 @@ export default function FadeModalWrapper({
     }
   }, [visible, labelledBy, describedBy]);
 
-  // ─────────────────────────────
-  //  ① ドキュメント救出：パネル“外”での ↑/↓/←/→ を強制引き込み
-  // ─────────────────────────────
+  // ── ① ドキュメント救出：パネル“外”での ↑/↓/←/→ を強制引き込み
   useEffect(() => {
     if (!visible) return;
 
@@ -289,9 +294,7 @@ export default function FadeModalWrapper({
     return () => document.removeEventListener("keydown", onDocKeyDown, true);
   }, [visible]);
 
-  // ─────────────────────────────
-  //  ② パネル内救出：パネル本体（ボディ）に居る時の ↑/↓/←/→ を引き込み
-  // ─────────────────────────────
+  // ── ② パネル内救出：パネル本体（ボディ）に居る時の ↑/↓/←/→ を引き込み
   const onPanelArrowRescue = (e: any) => {
     const key = e.key as string;
     if (
@@ -386,7 +389,6 @@ export default function FadeModalWrapper({
           e.stopPropagation(); // 中身クリックは backdrop にバブリングさせない
         },
         onKeyDown: (e: any) => {
-          // 先に子へ（preventDefault を尊重）
           child.props.onKeyDown?.(e);
           if (!e.defaultPrevented) onPanelArrowRescue(e); // パネル内ボディの救出
         },
