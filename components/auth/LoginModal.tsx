@@ -10,7 +10,7 @@ import FadeModalWrapper, {
 } from "@/components/common/FadeModalWrapper";
 import Input from "@/components/common/Input";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
-import useArrowFormNav from "@/hooks/useArrowFormNav"; // ← 追加
+import useArrowFormNav from "@/hooks/useArrowFormNav";
 
 interface LoginModalProps {
   onClose: () => void;
@@ -41,7 +41,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     overrideInput: true,
   });
 
-  // ↑/↓：フォーム間ナビ（常に奪う・外から↑=一番上/↓=一番下・フォーカス時は末尾にキャレット）
+  // ↑/↓：フォーム間ナビ（常に奪う・外から↑=一番上/↓=一番下・フォーカス時は末尾）
   const { formRef, onKeyDown: onFormKeyDown } = useArrowFormNav({
     loop: true,
     pullIn: true,
@@ -73,7 +73,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ login_id: userId, password }),
-        credentials: "same-origin", // ← 明示
+        credentials: "same-origin",
       });
       const data = await res.json();
 
@@ -100,7 +100,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     }
   };
 
-  // push → close（Pages Router）
+  // push → close
   const handleProgressConfirm = () => {
     router.push("/mypage");
     setTimeout(() => close(), 0);
@@ -109,7 +109,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
   return (
     <>
       <div
-        ref={formRef} // ← 追加：↑/↓の探索範囲
+        ref={formRef}
         role="dialog"
         aria-modal="true"
         className="bg-white text-gray-800 p-6 rounded shadow-lg w-80"
@@ -169,11 +169,13 @@ export default function LoginModal({ onClose }: LoginModalProps) {
         </div>
       </div>
 
+      {/* 成功時 Progress（asChild で中身が“パネル本体”に） */}
       {showProgress && (
         <FadeModalWrapper
           onClose={() => setShowProgress(false)}
           closeOnBackdrop={false}
           closeOnEsc={false}
+          asChild
         >
           <ProgressModal
             title="ログイン"
@@ -186,8 +188,13 @@ export default function LoginModal({ onClose }: LoginModalProps) {
         </FadeModalWrapper>
       )}
 
+      {/* エラー通知 Info（asChild） */}
       {info && (
-        <FadeModalWrapper onClose={() => setInfo(null)} durationOpen={450}>
+        <FadeModalWrapper
+          onClose={() => setInfo(null)}
+          durationOpen={450}
+          asChild
+        >
           <InfoModal
             title={info.title}
             message={info.message}

@@ -1,33 +1,57 @@
 // hooks/useProgressOverlay.ts
 "use client";
-import { useState } from "react";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-const MIN_MS = 800;
+import { useCallback, useRef, useState } from "react";
 
 export type ProgressStatus = "processing" | "done";
 
-export function useProgressOverlay() {
+/**
+ * モーダルの進捗オーバーレイ用フック
+ * - 常に同じ順序で useState を呼ぶ（条件分岐なし）
+ * - 早期 return なし
+ * - ミニマム遅延（minMs）を担保
+ */
+export function useProgressOverlay(minMs = 800) {
   const [show, setShow] = useState(false);
   const [status, setStatus] = useState<ProgressStatus>("processing");
+  const runIdRef = useRef(0);
 
-  async function runWithMinDelay<T>(fn: () => Promise<T>) {
-    setStatus("processing");
-    setShow(true);
-    const start = performance.now();
-    try {
-      const result = await fn();
-      const elapsed = performance.now() - start;
-      if (elapsed < MIN_MS) await sleep(MIN_MS - elapsed);
-      setStatus("done");
-      return { ok: true as const, result };
-    } catch (err) {
-      const elapsed = performance.now() - start;
-      if (elapsed < MIN_MS) await sleep(MIN_MS - elapsed);
-      setShow(false); // 失敗時はここで閉じる（呼び出し側でInfo表示）
-      return { ok: false as const, error: err };
-    }
-  }
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  return { show, setShow, status, setStatus, runWithMinDelay };
+  /**
+   * 進捗表示と最小時間を担保しながら非同期処理を実行する。
+   * 成功: { ok:true, data }
+   * 失敗: { ok:false, error }
+   */
+  const runWithMinDelay = useCallback(
+    async <T>(task: () => Promise<T>) => {
+      const id = ++runIdRef.current;
+
+      setStatus("processing");
+      setShow(true);
+
+      const start = performance.now();
+      try {
+        const data = await task();
+        const elapsed = performance.now() - start;
+        if (elapsed < minMs) await sleep(minMs - elapsed);
+        // 直近の run だけが状態を更新
+        if (runIdRef.current === id) setStatus("done");
+        return { ok: true as const, data };
+      } catch (error) {
+        const elapsed = performance.now() - start;
+        if (elapsed < minMs) await sleep(minMs - elapsed);
+        if (runIdRef.current === id) {
+          setShow(false); // エラー時はオーバーレイを閉じる
+          setStatus("processing");
+        }
+        return { ok: false as const, error };
+      }
+    },
+    [minMs]
+  );
+
+  return { show, setShow, status, setStatus, runWithMinDelay } as const;
 }
+
+export default useProgressOverlay;

@@ -4,7 +4,7 @@ import { Ref } from "react";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import FieldHint from "@/components/common/FieldHint";
-import useArrowFormNav from "@/hooks/useArrowFormNav"; // ← 追加
+import useArrowFormNav from "@/hooks/useArrowFormNav";
 
 type Props = {
   values: {
@@ -58,12 +58,11 @@ export default function RegisterFormCard({
 
   return (
     <div
-      ref={formRef} // ← 追加：↑/↓ の探索範囲（フォーム全体）
+      ref={formRef} // ↑/↓ の探索範囲（フォーム全体）
       className="bg-white p-6 rounded shadow-lg w-80 text-gray-800"
-      role="dialog"
-      aria-modal="true"
-      // ← キー合成：↑/↓ を先に、←/→（roving）を後に
+      // （削除）role="dialog" / aria-modal="true" は外側モーダルで担保する
       onKeyDown={(e) => {
+        // ↑/↓ を先に、←/→（roving）を後に
         onFormKeyDown(e);
         onRootKeyDown(e);
       }}
@@ -181,7 +180,7 @@ export default function RegisterFormCard({
           onClick={onCancel}
           disabled={submitting}
           data-enter-ignore
-          data-action="cancel" // 左：キャンセル
+          data-action="cancel"
         >
           キャンセル
         </Button>
@@ -192,7 +191,7 @@ export default function RegisterFormCard({
           disabled={submitDisabled}
           aria-disabled={submitDisabled}
           data-enter
-          data-action="primary" // 右：登録（無効は hook が自動スキップ）
+          data-action="primary"
         >
           登録
         </Button>

@@ -1,13 +1,14 @@
 // components/auth/RegisterModal.tsx
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/router"; // ← Pages Router
+import { useState, useEffect } from "react";
+import { useRouter } from "next/router"; // Pages Router
 import FadeModalWrapper, {
   useFadeModal,
 } from "@/components/common/FadeModalWrapper";
 import InfoModal from "@/components/common/InfoModal";
 import ProgressModal from "@/components/common/ProgressModal";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
 import RegisterFormCard from "@/components/auth/RegisterFormCard";
 import { useRegisterForm } from "@/hooks/useRegisterForm";
 import { useProgressOverlay } from "@/hooks/useProgressOverlay";
@@ -21,10 +22,10 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
   const router = useRouter();
   const { close } = useFadeModal();
 
-  // 入力 + リアルタイム検証（必須 / 一致 / 可用性）
+  // 入力 + リアルタイム検証
   const form = useRegisterForm();
 
-  // 進捗オーバーレイ（最低表示時間は hook 側で担保）
+  // 進捗オーバーレイ
   const { show, setShow, status, runWithMinDelay } = useProgressOverlay();
 
   // API 失敗などの通知用
@@ -41,7 +42,66 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     overrideInput: true,
   });
 
+  // ★ キャンセル確認ダイアログの表示状態
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+
+  // --- 多重モーダル時の inert 付与（最前面以外を無効化）-----------------------
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const overlayActive = !!showDiscardConfirm || !!show || !!info;
+
+    // 自分が付けた inert/aria-hidden だけをクリーンアップする関数
+    const clearMine = () => {
+      document
+        .querySelectorAll<HTMLElement>("[data-inert-by-register]")
+        .forEach((el) => {
+          el.removeAttribute("inert");
+          el.removeAttribute("data-inert-by-register");
+        });
+      document
+        .querySelectorAll<HTMLElement>("[data-aria-hidden-by-register]")
+        .forEach((el) => {
+          el.removeAttribute("aria-hidden");
+          el.removeAttribute("data-aria-hidden-by-register");
+        });
+    };
+
+    // いったん自分の付与分だけクリア（前回分を除去）
+    clearMine();
+
+    if (!overlayActive) {
+      // 二次モーダルが出ていなければ何もしない
+      return;
+    }
+
+    // 最後の子 = 最前面（確認/進捗/Info 等） それ以外を inert
+    const kids = Array.from(document.body.children);
+    for (let i = 0; i < kids.length - 1; i++) {
+      const n = kids[i] as HTMLElement;
+      if (!n.hasAttribute("inert")) {
+        n.setAttribute("inert", "");
+        n.setAttribute("data-inert-by-register", "");
+      }
+      if (!n.hasAttribute("aria-hidden")) {
+        n.setAttribute("aria-hidden", "true");
+        n.setAttribute("data-aria-hidden-by-register", "");
+      }
+    }
+
+    // 解除（依存が変わる/アンマウント時）
+    return clearMine;
+  }, [showDiscardConfirm, show, info]);
+  // -----------------------------------------------------------------------
+
+  // キャンセル押下 → 確認を出す（いきなり閉じない）
   const handleCancel = () => {
+    setShowDiscardConfirm(true);
+  };
+
+  // 確認：OK（破棄して閉じる）
+  const handleDiscardConfirm = () => {
+    setShowDiscardConfirm(false);
     close();
     onClose?.();
   };
@@ -62,7 +122,7 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
           contact: form.contact,
           user_name: form.userName,
         }),
-        credentials: "same-origin", // 明示（環境差吸収）
+        credentials: "same-origin",
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "登録に失敗しました");
@@ -72,16 +132,14 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     setSubmitting(false);
 
     if (!ok) {
-      // 失敗時：Progress は hook 側で閉じ済。Info を開く
       setInfo({ title: "登録失敗", message: (error as Error).message });
     }
     // 成功時：Progress 側が "done" 表示 → OK で onConfirm が呼ばれる
   };
 
-  // ✅ 登録完了 → OK：自動ログイン → 遷移（push→close の順）
+  // 登録完了 → OK：自動ログイン → 遷移（push→close）
   const handleProgressConfirm = async () => {
     try {
-      // まず自動ログイン（登録と同じ認証情報で）
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,16 +152,12 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "自動ログインに失敗しました");
 
-      // セッション発行が成功したら遷移
       router.push("/mypage");
-
-      // 遷移でアンマウントされる想定だが、保険で次フレーム close
       setTimeout(() => {
         close();
         onClose?.();
       }, 0);
     } catch (e: any) {
-      // 自動ログインだけ失敗した場合：Progress を閉じて Info で案内
       setShow(false);
       setInfo({
         title: "自動ログイン失敗",
@@ -141,12 +195,13 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
         onRootKeyDown={onRootKeyDown}
       />
 
-      {/* 成功フロー：Progress（最低表示あり） */}
+      {/* 成功フロー：Progress（asChild） */}
       {show && (
         <FadeModalWrapper
           onClose={() => setShow(false)}
           closeOnBackdrop={false}
           closeOnEsc={false}
+          asChild
         >
           <ProgressModal
             title="アカウント作成"
@@ -159,13 +214,37 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
         </FadeModalWrapper>
       )}
 
-      {/* 失敗フロー：Info */}
+      {/* 失敗フロー：Info（asChild） */}
       {info && (
-        <FadeModalWrapper onClose={() => setInfo(null)} durationOpen={650}>
+        <FadeModalWrapper
+          onClose={() => setInfo(null)}
+          durationOpen={650}
+          asChild
+        >
           <InfoModal
             title={info.title}
             message={info.message}
             onConfirm={() => setInfo(null)}
+          />
+        </FadeModalWrapper>
+      )}
+
+      {/* ★ キャンセル確認（asChild：OK/キャンセルのシンプル版） */}
+      {showDiscardConfirm && (
+        <FadeModalWrapper
+          onClose={() => setShowDiscardConfirm(false)}
+          closeOnBackdrop={false}
+          closeOnEsc={true}
+          asChild
+        >
+          <ConfirmDialog
+            asModalChild
+            title="確認"
+            message="入力を破棄しますか？"
+            cancelLabel="キャンセル"
+            confirmLabel="OK"
+            onCancel={() => setShowDiscardConfirm(false)}
+            onConfirm={handleDiscardConfirm}
           />
         </FadeModalWrapper>
       )}

@@ -1,8 +1,16 @@
 // hooks/useRegisterForm.ts
 "use client";
-import { useEffect, useMemo, useState } from "react";
 
-export type Availability = null | boolean;
+import { useMemo, useState } from "react";
+import { validateUserId, validatePassword } from "@/lib/validators/auth";
+
+type FieldErrors = {
+  userId?: string;
+  password?: string;
+  confirmPassword?: string;
+};
+
+type Availability = boolean | null;
 
 export function useRegisterForm() {
   const [userId, setUserId] = useState("");
@@ -14,68 +22,40 @@ export function useRegisterForm() {
   const [availability, setAvailability] = useState<Availability>(null);
   const [checking, setChecking] = useState(false);
 
-  // USER_ID 可用性（遅延 500ms）
-  useEffect(() => {
-    if (!userId) {
-      setAvailability(null);
-      return;
-    }
-    const t = setTimeout(async () => {
-      setChecking(true);
-      try {
-        const res = await fetch("/api/check-login-id", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ login_id: userId }),
-        });
-        const data = await res.json();
-        setAvailability(data.available);
-      } catch {
-        setAvailability(null);
-      } finally {
-        setChecking(false);
-      }
-    }, 500);
-    return () => clearTimeout(t);
-  }, [userId]);
-
-  // リアルタイム検証
-  const fieldErrors = useMemo(() => {
-    const e: { userId?: string; password?: string; confirmPassword?: string } =
-      {};
-    if (!userId) e.userId = "入力してください";
-    if (!password) e.password = "入力してください";
+  const fieldErrors: FieldErrors = useMemo(() => {
+    const e: FieldErrors = {};
+    e.userId = validateUserId(userId);
+    e.password = validatePassword(password);
     if (!confirmPassword) e.confirmPassword = "入力してください";
-    if (userId && availability === false)
-      e.userId = "このUSER_IDは使用できません";
-    if (password && confirmPassword && password !== confirmPassword) {
-      e.confirmPassword = "パスワードが一致しません";
-    }
+    else if (password !== confirmPassword)
+      e.confirmPassword = "PASSWORD が一致しません";
     return e;
-  }, [userId, password, confirmPassword, availability]);
+  }, [userId, password, confirmPassword]);
 
   const hasBlockingError =
     !!fieldErrors.userId ||
     !!fieldErrors.password ||
-    !!fieldErrors.confirmPassword;
+    !!fieldErrors.confirmPassword ||
+    availability === false;
 
   return {
-    // values
     userId,
     password,
     confirmPassword,
     contact,
     userName,
-    // setters
     setUserId,
     setPassword,
     setConfirmPassword,
     setContact,
     setUserName,
-    // validation
     availability,
+    setAvailability,
     checking,
+    setChecking,
     fieldErrors,
     hasBlockingError,
-  };
+  } as const;
 }
+
+export default useRegisterForm;

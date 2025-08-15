@@ -6,84 +6,134 @@ import jwt from "jsonwebtoken";
 import { serialize } from "cookie";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!, // 公開OK
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // サーバのみ（絶対に公開NG）
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// ユーザー未発見時のタイミングばらつきを抑えるためのダミーハッシュ（任意）
-const DUMMY_HASH =
-  "$2a$10$X9fQ1b6wx1e5Cq8Wb8o7xO4qS8Q0XGk2q4p7Pp9YtR6Q8Yqk0yP1e"; // bcrypt.hashSync("dummy", 10) など
+const isProd = process.env.NODE_ENV === "production";
+const isDev = !isProd;
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
+  if (req.method !== "POST") return res.status(405).end();
 
-  if (!process.env.JWT_SECRET) {
-    // 運用ミス検知
-    return res.status(500).json({ error: "Server misconfiguration" });
-  }
-
-  const { login_id, password } = req.body ?? {};
-
-  if (
-    typeof login_id !== "string" ||
-    typeof password !== "string" ||
-    !login_id ||
-    !password
-  ) {
+  const login_id = String(req.body?.login_id ?? "");
+  const password = String(req.body?.password ?? "");
+  if (!login_id || !password) {
     return res
       .status(400)
-      .json({ error: "USER_IDとPASSWORDを入力してください" });
+      .json({ error: "USER_ID と PASSWORD を入力してください" });
   }
 
-  // ユーザー取得（列を最小化 & 未ヒットは data:null）
-  const { data: user, error: fetchErr } = await supabase
-    .from("users")
-    .select("user_id, login_id, pass")
-    .eq("login_id", login_id)
-    .maybeSingle();
+  try {
+    // 1) ユーザー取得（列名は 'pass'）
+    const { data: rows, error: selErr } = await supabase
+      .from("users")
+      .select("user_id, login_id, pass")
+      .eq("login_id", login_id)
+      .limit(1);
 
-  // 共通の失敗レスポンス（メッセージは固定で良い）
-  const fail = () =>
-    res.status(401).json({ error: "USER_IDまたはPASSWORDが違います" });
+    if (selErr) {
+      if (isDev) console.error("[login] select error:", selErr);
+      return res
+        .status(500)
+        .json({
+          error: isDev
+            ? `DB error: ${selErr.message}`
+            : "ログイン処理でエラーが発生しました",
+        });
+    }
 
-  if (fetchErr) {
-    // 読み取り失敗は 500（DB障害など）
-    return res.status(500).json({ error: "サーバーエラーが発生しました" });
+    const user = rows?.[0];
+    if (!user) {
+      return res
+        .status(401)
+        .json({ error: "ユーザーIDまたはパスワードが違います" });
+    }
+
+    const stored = user.pass as string | null;
+    if (!stored) {
+      return res
+        .status(401)
+        .json({ error: "ユーザーIDまたはパスワードが違います" });
+    }
+
+    // 2) パスワード照合
+    let ok = false;
+    try {
+      // bcrypt 形式ならこれで照合できる（非bcryptなら例外）
+      ok = await bcrypt.compare(password, stored);
+    } catch (e: any) {
+      if (isDev)
+        console.warn(
+          "[login] bcrypt.compare failed (maybe plain text), message:",
+          e?.message
+        );
+      ok = false;
+    }
+
+    // 3) 平文からの“なまけ移行”（stored が平文と一致したらログイン許可しつつハッシュへ更新）
+    if (!ok && stored === password) {
+      try {
+        const newHash = await bcrypt.hash(password, 12);
+        const { error: upErr } = await supabase
+          .from("users")
+          .update({ pass: newHash })
+          .eq("user_id", user.user_id);
+        if (upErr && isDev)
+          console.warn("[login] lazy upgrade failed:", upErr.message);
+      } catch (e: any) {
+        if (isDev) console.warn("[login] lazy upgrade error:", e?.message);
+      }
+      ok = true; // アップグレードに失敗しても今回の認証は通す
+    }
+
+    if (!ok) {
+      return res
+        .status(401)
+        .json({ error: "ユーザーIDまたはパスワードが違います" });
+    }
+
+    // 4) JWT 発行
+    if (!process.env.JWT_SECRET) {
+      if (isDev) console.error("[login] Missing JWT_SECRET");
+      return res
+        .status(500)
+        .json({
+          error: isDev
+            ? "Missing JWT_SECRET"
+            : "ログイン処理でエラーが発生しました",
+        });
+    }
+
+    const token = jwt.sign(
+      { sub: user.user_id, login_id: user.login_id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.setHeader(
+      "Set-Cookie",
+      serialize("session", token, {
+        httpOnly: true,
+        secure: isProd,
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      })
+    );
+
+    return res.status(200).json({ ok: true });
+  } catch (e: any) {
+    if (isDev) console.error("[login] unexpected error:", e);
+    return res
+      .status(500)
+      .json({
+        error: isDev
+          ? `Unexpected: ${e?.message}`
+          : "ログイン処理でエラーが発生しました",
+      });
   }
-
-  if (!user) {
-    // 未発見でもダミー比較を挟んでタイミング揃え（任意）
-    await bcrypt.compare(password, DUMMY_HASH).catch(() => null);
-    return fail();
-  }
-
-  // パスワード検証
-  const isMatch = await bcrypt.compare(password, user.pass);
-  if (!isMatch) return fail();
-
-  // JWT 生成（payload は最小限）
-  const token = jwt.sign(
-    { sub: user.user_id, login_id: user.login_id },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" } // HS256 が既定
-  );
-
-  // Cookie に保存
-  res.setHeader(
-    "Set-Cookie",
-    serialize("session", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax", // 必要なら "strict" に
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7日
-    })
-  );
-
-  return res.status(200).json({ message: "ログイン成功" });
 }
