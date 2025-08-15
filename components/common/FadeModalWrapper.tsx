@@ -11,6 +11,7 @@ import { useModalKeyEvents } from "@/hooks/useModalKeyEvents";
 import { useModalVisibility } from "@/hooks/useModalVisibility";
 import { useModalBackdrop } from "@/hooks/useModalBackdrop";
 import { useAriaAutolink } from "@/hooks/useAriaAutolink";
+import { useInertStack } from "@/hooks/useInertStack";
 
 import ModalOverlay from "@/components/common/ModalOverlay";
 import ModalPanel from "@/components/common/ModalPanel";
@@ -67,6 +68,7 @@ export default function FadeModalWrapper({
   role = "dialog",
   asChild = false,
 }: FadeModalWrapperProps) {
+  // body直下に生える overlay（＝このモーダルの“ルート”）
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -82,7 +84,10 @@ export default function FadeModalWrapper({
   useFocusTrap?.(panelRef, visible);
   useScrollLock();
 
-  // 背面 inert / data-attr 管理
+  // ★ 共通：最前面以外を inert（見た目だけの overlayRef をスタック登録）
+  useInertStack(overlayRef, visible);
+
+  // 既存の backdrop/data-attr 管理（必要なら維持）
   useModalBackdrop(visible);
 
   // ARIA 自動配線（data-modal-title / data-modal-desc を拾う）

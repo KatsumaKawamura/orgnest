@@ -1,7 +1,7 @@
 // components/auth/RegisterModal.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router"; // Pages Router
 import FadeModalWrapper, {
   useFadeModal,
@@ -45,59 +45,8 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
   // ★ キャンセル確認ダイアログの表示状態
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
-  // --- 多重モーダル時の inert 付与（最前面以外を無効化）-----------------------
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    const overlayActive = !!showDiscardConfirm || !!show || !!info;
-
-    // 自分が付けた inert/aria-hidden だけをクリーンアップする関数
-    const clearMine = () => {
-      document
-        .querySelectorAll<HTMLElement>("[data-inert-by-register]")
-        .forEach((el) => {
-          el.removeAttribute("inert");
-          el.removeAttribute("data-inert-by-register");
-        });
-      document
-        .querySelectorAll<HTMLElement>("[data-aria-hidden-by-register]")
-        .forEach((el) => {
-          el.removeAttribute("aria-hidden");
-          el.removeAttribute("data-aria-hidden-by-register");
-        });
-    };
-
-    // いったん自分の付与分だけクリア（前回分を除去）
-    clearMine();
-
-    if (!overlayActive) {
-      // 二次モーダルが出ていなければ何もしない
-      return;
-    }
-
-    // 最後の子 = 最前面（確認/進捗/Info 等） それ以外を inert
-    const kids = Array.from(document.body.children);
-    for (let i = 0; i < kids.length - 1; i++) {
-      const n = kids[i] as HTMLElement;
-      if (!n.hasAttribute("inert")) {
-        n.setAttribute("inert", "");
-        n.setAttribute("data-inert-by-register", "");
-      }
-      if (!n.hasAttribute("aria-hidden")) {
-        n.setAttribute("aria-hidden", "true");
-        n.setAttribute("data-aria-hidden-by-register", "");
-      }
-    }
-
-    // 解除（依存が変わる/アンマウント時）
-    return clearMine;
-  }, [showDiscardConfirm, show, info]);
-  // -----------------------------------------------------------------------
-
   // キャンセル押下 → 確認を出す（いきなり閉じない）
-  const handleCancel = () => {
-    setShowDiscardConfirm(true);
-  };
+  const handleCancel = () => setShowDiscardConfirm(true);
 
   // 確認：OK（破棄して閉じる）
   const handleDiscardConfirm = () => {
