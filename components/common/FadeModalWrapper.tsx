@@ -81,10 +81,10 @@ export default function FadeModalWrapper({
 
   // 初期フォーカス & 復帰、Tab トラップ、背面スクロールロック
   useModalFocus(visible, panelRef);
-  useFocusTrap?.(panelRef, visible);
+  useFocusTrap(panelRef, visible);
   useScrollLock();
 
-  // ★ 共通：最前面以外を inert（見た目だけの overlayRef をスタック登録）
+  // 共通：最前面以外を inert（見た目だけの overlayRef をスタック登録）
   useInertStack(overlayRef, visible);
 
   // 既存の backdrop/data-attr 管理（必要なら維持）

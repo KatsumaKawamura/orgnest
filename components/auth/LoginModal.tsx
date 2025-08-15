@@ -110,15 +110,15 @@ export default function LoginModal({ onClose }: LoginModalProps) {
     <>
       <div
         ref={formRef}
-        role="dialog"
-        aria-modal="true"
         className="bg-white text-gray-800 p-6 rounded shadow-lg w-80"
         onKeyDown={(e) => {
           onFormKeyDown(e); // ↑/↓ 最優先
           onRootKeyDown(e); // ←/→（ボタン roving）
         }}
       >
-        <h2 className="text-lg font-semibold mb-4">ログイン</h2>
+        <h2 className="text-lg font-semibold mb-4" data-modal-title>
+          ログイン
+        </h2>
 
         <Input
           type="text"

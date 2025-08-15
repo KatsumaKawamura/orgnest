@@ -14,9 +14,16 @@ type Props = {
     contact: string;
     userName: string;
   };
-  errors: { userId?: string; password?: string; confirmPassword?: string };
-  availability: null | boolean;
-  checking: boolean;
+  errors: {
+    userId?: string;
+    password?: string;
+    confirmPassword?: string;
+    contact?: string;
+    userName?: string;
+  };
+  // 互換性のために複数の形を許可（旧: boolean/null, 新: オブジェクト）
+  availability: { userId?: "unknown" | "available" | "taken" } | boolean | null;
+  checking: { userId: boolean } | boolean;
   submitting: boolean;
   onChange: {
     setUserId: (v: string) => void;
@@ -56,10 +63,22 @@ export default function RegisterFormCard({
     caretOnFocus: "end",
   });
 
+  // 旧API互換: availability を統一表現に正規化
+  let availabilityStatus: "unknown" | "available" | "taken" | undefined;
+  if (availability === true) availabilityStatus = "available";
+  else if (availability === false) availabilityStatus = "taken";
+  else if (availability && typeof availability === "object")
+    availabilityStatus = availability.userId;
+  else availabilityStatus = "unknown";
+
+  // 旧API互換: checking を boolean に正規化
+  const isChecking =
+    typeof checking === "object" ? !!checking.userId : !!checking;
+
   return (
     <div
-      ref={formRef} // ↑/↓ の探索範囲（フォーム全体）
-      className="bg-white p-6 rounded shadow-lg w-80 text-gray-800"
+      ref={formRef}
+      className="bg-white text-gray-800 p-6 rounded shadow-lg w-[min(92vw,420px)]"
       // （削除）role="dialog" / aria-modal="true" は外側モーダルで担保する
       onKeyDown={(e) => {
         // ↑/↓ を先に、←/→（roving）を後に
@@ -67,7 +86,9 @@ export default function RegisterFormCard({
         onRootKeyDown(e);
       }}
     >
-      <h2 className="text-lg font-semibold mb-4">アカウント作成</h2>
+      <h2 className="text-lg font-semibold mb-4" data-modal-title>
+        アカウント作成
+      </h2>
 
       {/* USER_ID */}
       <Input
@@ -81,26 +102,21 @@ export default function RegisterFormCard({
       />
       <FieldHint
         message={
-          errors.userId
-            ? errors.userId
-            : availability === true
-            ? "使用可能です"
-            : availability === false
-            ? "使用できません"
-            : checking
-            ? "確認中…"
-            : undefined
+          isChecking
+            ? "ユーザーIDを確認中…"
+            : errors.userId ||
+              (availabilityStatus === "taken"
+                ? "このUSER_IDは使用できません"
+                : undefined)
         }
         state={
-          errors.userId
-            ? errors.userId === "入力してください"
-              ? "neutral"
-              : "error"
-            : availability === true
+          isChecking
+            ? "waiting"
+            : errors.userId
+            ? "neutral"
+            : availabilityStatus === "available"
             ? "ok"
-            : availability === false
-            ? "error"
-            : "waiting"
+            : "neutral"
         }
       />
 
@@ -119,10 +135,10 @@ export default function RegisterFormCard({
         state={errors.password ? "neutral" : "neutral"}
       />
 
-      {/* PASSWORD（確認） */}
+      {/* CONFIRM PASSWORD */}
       <Input
         type="password"
-        placeholder="PASSWORD（確認用）"
+        placeholder="CONFIRM PASSWORD"
         value={confirmPassword}
         onChange={(e) => onChange.setConfirmPassword(e.target.value)}
         className="mb-1"
@@ -131,43 +147,38 @@ export default function RegisterFormCard({
       />
       <FieldHint
         message={errors.confirmPassword}
-        state={
-          errors.confirmPassword
-            ? errors.confirmPassword === "入力してください"
-              ? "neutral"
-              : "error"
-            : "neutral"
-        }
+        state={errors.confirmPassword ? "neutral" : "neutral"}
       />
 
-      {/* 連絡先 / ユーザー名（任意） */}
-      <div className="mb-3">
-        <Input
-          type="email"
-          placeholder="E-MAIL（任意）"
-          value={contact}
-          onChange={(e) => onChange.setContact(e.target.value)}
-          disabled={submitting}
-        />
-        <p className="text-xs text-gray-800 mt-1">
-          E-MAILは後から再設定可能です。
-        </p>
-      </div>
+      {/* CONTACT */}
+      <Input
+        type="text"
+        placeholder="CONTACT"
+        value={contact}
+        onChange={(e) => onChange.setContact(e.target.value)}
+        className="mb-1"
+        disabled={submitting}
+      />
+      <FieldHint
+        message={errors.contact}
+        state={errors.contact ? "neutral" : "neutral"}
+      />
 
-      <div className="mb-4">
-        <Input
-          type="text"
-          placeholder="USER_NAME（任意）"
-          value={userName}
-          onChange={(e) => onChange.setUserName(e.target.value)}
-          disabled={submitting}
-        />
-        <p className="text-xs text-gray-800 mt-1">
-          USER_NAMEは後から再設定可能です。
-        </p>
-      </div>
+      {/* USER_NAME */}
+      <Input
+        type="text"
+        placeholder="USER_NAME"
+        value={userName}
+        onChange={(e) => onChange.setUserName(e.target.value)}
+        className="mb-4"
+        disabled={submitting}
+        aria-invalid={!!errors.userName}
+      />
+      <FieldHint
+        message={errors.userName}
+        state={errors.userName ? "neutral" : "neutral"}
+      />
 
-      {/* アクション行：左右 roving 対象 */}
       <div
         ref={actionRowRef}
         role="group"
@@ -179,11 +190,13 @@ export default function RegisterFormCard({
           size="md"
           onClick={onCancel}
           disabled={submitting}
+          type="button"
           data-enter-ignore
           data-action="cancel"
         >
           キャンセル
         </Button>
+
         <Button
           variant="primary"
           size="md"
