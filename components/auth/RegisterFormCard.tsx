@@ -79,7 +79,6 @@ export default function RegisterFormCard({
     <div
       ref={formRef}
       className="bg-white text-gray-800 p-6 rounded shadow-lg w-[min(92vw,420px)]"
-      // （削除）role="dialog" / aria-modal="true" は外側モーダルで担保する
       onKeyDown={(e) => {
         // ↑/↓ を先に、←/→（roving）を後に
         onFormKeyDown(e);
@@ -93,7 +92,7 @@ export default function RegisterFormCard({
       {/* USER_ID */}
       <Input
         type="text"
-        placeholder="USER_ID"
+        placeholder="USER_ID（ログインに使用）"
         value={userId}
         onChange={(e) => onChange.setUserId(e.target.value)}
         className="mb-1"
@@ -138,7 +137,7 @@ export default function RegisterFormCard({
       {/* CONFIRM PASSWORD */}
       <Input
         type="password"
-        placeholder="CONFIRM PASSWORD"
+        placeholder="PASSWORD（確認用）"
         value={confirmPassword}
         onChange={(e) => onChange.setConfirmPassword(e.target.value)}
         className="mb-1"
@@ -153,29 +152,31 @@ export default function RegisterFormCard({
       {/* CONTACT */}
       <Input
         type="text"
-        placeholder="CONTACT"
+        placeholder="E-MAIL（PASS再設定用）"
         value={contact}
         onChange={(e) => onChange.setContact(e.target.value)}
         className="mb-1"
         disabled={submitting}
       />
       <FieldHint
-        message={errors.contact}
+        message={errors.contact ?? "任意入力です。ログイン後に再設定できます。"}
         state={errors.contact ? "neutral" : "neutral"}
       />
 
       {/* USER_NAME */}
       <Input
         type="text"
-        placeholder="USER_NAME"
+        placeholder="USER_NAME（アプリ内での表示名）"
         value={userName}
         onChange={(e) => onChange.setUserName(e.target.value)}
-        className="mb-4"
+        className="mb-1"
         disabled={submitting}
         aria-invalid={!!errors.userName}
       />
       <FieldHint
-        message={errors.userName}
+        message={
+          errors.userName ?? "任意入力です。ログイン後に再設定できます。"
+        }
         state={errors.userName ? "neutral" : "neutral"}
       />
 
