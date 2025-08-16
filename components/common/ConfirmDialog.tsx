@@ -28,13 +28,9 @@ export default function ConfirmDialog({
   const cancelRef = useRef<HTMLButtonElement | null>(null);
   const okRef = useRef<HTMLButtonElement | null>(null);
 
-  // 行内ロービング（左右は明示的に制御するため loop:false）
   const roving = useModalActionRoving({ loop: false, overrideInput: true });
-
-  // 直近でフォーカスしたボタン（戻し先の既定）
   const lastAction = useRef<"cancel" | "ok">("cancel");
 
-  // 初期フォーカス：キャンセル優先（なければOK）
   useEffect(() => {
     (cancelRef.current ?? okRef.current)?.focus();
   }, []);
@@ -55,7 +51,6 @@ export default function ConfirmDialog({
     target?.focus();
   }, []);
 
-  // === 重要：document(capture) で拾い、パネル「外」でも処理する ==================
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const panel = panelRef.current;
@@ -65,7 +60,6 @@ export default function ConfirmDialog({
       const inPanel = !!(tgt && panel.contains(tgt));
       const inActions = inPanel ? tgt!.closest("[data-confirm-actions]") : null;
 
-      // Esc は常にキャンセル（どこにフォーカスがあっても）
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -73,7 +67,6 @@ export default function ConfirmDialog({
         return;
       }
 
-      // ---- パネル外 or パネル内ボタン外：キー押下でアクション行へ復帰 ----
       if (!inActions) {
         if (e.key === "ArrowLeft") {
           e.preventDefault();
@@ -96,26 +89,21 @@ export default function ConfirmDialog({
         if (e.key === "Enter") {
           e.preventDefault();
           e.stopPropagation();
-          // 視覚的整合のため OK へ寄せてから実行
           focusBackToActions("ok");
           okRef.current?.click();
           return;
         }
-        // その他（文字キーなど）は「戻すだけ」
         if (e.key.length === 1) {
           focusBackToActions();
           return;
         }
       }
-      // ボタン上でのキーは行ハンドラに委ねる
     };
 
-    document.addEventListener("keydown", handler, true); // capture
+    document.addEventListener("keydown", handler, true);
     return () => document.removeEventListener("keydown", handler, true);
   }, [focusBackToActions, onCancel]);
-  // =======================================================================
 
-  // 行上：左右は明示マッピング（left=キャンセル / right=OK）
   const onActionRowKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft") {
       e.preventDefault();
@@ -135,7 +123,6 @@ export default function ConfirmDialog({
       onCancel();
       return;
     }
-    // その他（Tab など）は roving 側に委ねる
     // @ts-ignore
     roving.onRootKeyDown(e);
   };
@@ -157,7 +144,7 @@ export default function ConfirmDialog({
     <div
       ref={panelRef}
       data-confirm-root
-      className="rounded-xl bg-white shadow-xl p-6 w-[min(92vw,420px)] text-gray-900"
+      className="rounded-xl bg-white shadow-xl p-6 w-[min(92vw,420px)] text-gray-900 text-center"
     >
       <h2 className="text-lg font-semibold mb-3" data-modal-title>
         {title}
@@ -165,40 +152,45 @@ export default function ConfirmDialog({
       <div className="text-sm leading-6">{renderMessage(message)}</div>
 
       <div
-        ref={roving.rowRef /* ← そのまま渡す（呼び出さない） */}
+        ref={roving.rowRef}
         data-confirm-actions
         role="group"
         aria-orientation="horizontal"
-        className="mt-6 flex justify-end gap-3"
+        className="mt-6 flex justify-center gap-4"
         onKeyDown={onActionRowKeyDown}
       >
-        <Button
-          ref={cancelRef}
-          variant="secondary"
-          onClick={onCancel}
-          onFocus={rememberLastAction("cancel")}
-          data-action="cancel"
-          data-enter-ignore
-        >
-          {cancelLabel}
-        </Button>
-        <Button
-          ref={okRef}
-          variant="primary"
-          onClick={onConfirm}
-          onFocus={rememberLastAction("ok")}
-          data-action="primary"
-          data-enter
-        >
-          {confirmLabel}
-        </Button>
+        <div>
+          <Button
+            ref={cancelRef}
+            variant="secondary"
+            onClick={onCancel}
+            onFocus={rememberLastAction("cancel")}
+            data-action="cancel"
+            data-enter-ignore
+            className="w-full"
+          >
+            {cancelLabel}
+          </Button>
+        </div>
+        <div>
+          <Button
+            ref={okRef}
+            variant="primary"
+            onClick={onConfirm}
+            onFocus={rememberLastAction("ok")}
+            data-action="primary"
+            data-enter
+            className="w-full"
+          >
+            {confirmLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );
 
   if (asModalChild) return Panel;
 
-  // 単体利用（オーバーレイ込み）も可能に
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"

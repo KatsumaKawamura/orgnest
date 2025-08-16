@@ -27,16 +27,12 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   ref
 ) {
   const base =
-    // レイアウト/トランジション
     "rounded font-medium inline-flex items-center justify-center " +
     "transition-colors transition-shadow motion-reduce:transition-none " +
-    // フォーカス
     "focus:outline-none " +
     "focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 " +
     "focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 " +
-    // ホバー
     "enabled:hover:ring-2 enabled:hover:ring-gray-900 enabled:hover:ring-offset-2 " +
-    // 無効
     "disabled:opacity-50 disabled:cursor-default";
 
   const variants = {
@@ -53,7 +49,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     sm: "px-3 py-1.5 text-sm min-h-[36px]",
     md: "px-4 py-2 text-base min-h-[44px]",
     lg: "px-5 py-3 text-lg min-h-[48px]",
-    // スマホ:48px / PC:40px
     responsive: "px-5 text-base font-medium min-h-[48px] sm:min-h-[40px]",
   } as const;
 
@@ -63,7 +58,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     lg: "w-12 h-12",
   } as const;
 
-  const widthClass = fullWidth ? "w-full" : undefined;
+  // fullWidth 優先、それ以外はデフォルト w-32
+  const widthClass = fullWidth ? "w-full" : "w-32";
 
   const sizeClass =
     variant === "icon"
