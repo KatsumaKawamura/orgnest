@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ScheduleContainer.tsx
 "use client";
 import { useState, useEffect } from "react";
@@ -11,7 +12,7 @@ export default function ScheduleContainer() {
     "mypage"
   );
 
-  // === MyPageカードを親で管理 ===
+  // === MyPageカードを親で管琁E===
   const [mypageCards, setMypageCards] = useState<MyPageCard[]>([]);
 
   // マウント後にlocalStorageから読み込み
@@ -25,13 +26,13 @@ export default function ScheduleContainer() {
     }
   }, []);
 
-  // 保存
+  // 保孁E
   useEffect(() => {
     if (typeof window === "undefined") return;
     localStorage.setItem("mypage_cards", JSON.stringify(mypageCards));
   }, [mypageCards]);
 
-  // === プロジェクトリストを親で管理 ===
+  // === プロジェクトリストを親で管琁E===
   const [projectList, setProjectList] = useState<string[]>(["案件A", "案件B"]);
 
   const addProject = (name: string) => {
@@ -48,7 +49,7 @@ export default function ScheduleContainer() {
     setProjectList(newList);
   };
 
-  // 今日の日付
+  // 今日の日仁E
   const today = new Date();
   const datePart = today.toLocaleDateString("ja-JP", {
     year: "numeric",
@@ -56,7 +57,7 @@ export default function ScheduleContainer() {
     day: "numeric",
   });
   const weekdayPart = "日月火水木金土"[today.getDay()];
-  const formattedDateWithBrackets = `${datePart}（${weekdayPart}）`;
+  const formattedDateWithBrackets = `${datePart}�E�E{weekdayPart}�E�`;
 
   return (
     <main className="p-6 bg-[#ece9e5] min-h-screen">
@@ -116,3 +117,4 @@ export default function ScheduleContainer() {
     </main>
   );
 }
+

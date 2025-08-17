@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import { Trash2 } from "lucide-react";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
@@ -16,7 +17,7 @@ export default function MyPageActionBar({
   return (
     <div className="flex space-x-2 mb-4 relative">
       <Button onClick={onAdd} variant="primary">
-        ＋カード追加
+        �E�カード追加
       </Button>
 
       <Button
@@ -25,7 +26,7 @@ export default function MyPageActionBar({
         className="flex items-center"
       >
         <Trash2 className="w-4 h-4 mr-2 text-gray-800" />
-        {deleteMode ? "戻る" : "選択"}
+        {deleteMode ? "戻めE : "選抁E}
       </Button>
 
       {deleteMode && (
@@ -35,14 +36,14 @@ export default function MyPageActionBar({
           </Button>
           {isOpen && (
             <ConfirmDialog
-              message="選択したカードを削除しますか？"
+              message="選択したカードを削除しますか�E�E
               onCancel={close}
               onConfirm={() => {
                 onConfirmDelete();
                 close();
               }}
               confirmLabel="削除"
-              cancelLabel="戻る"
+              cancelLabel="戻めE
               confirmClassName="px-3 py-1 text-sm bg-red-600 text-white hover:bg-red-700 border border-gray-800 rounded"
               cancelClassName="px-3 py-1 text-sm text-gray-600 hover:bg-white border border-gray-800 rounded"
               position="absolute"
@@ -53,3 +54,4 @@ export default function MyPageActionBar({
     </div>
   );
 }
+

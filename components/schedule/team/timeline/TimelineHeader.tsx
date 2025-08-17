@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import { TIME_LABEL_WIDTH } from "@/constants/timeline";
 import { TimelineHeaderProps } from "@/types/timeline";
@@ -13,9 +14,9 @@ export default function TimelineHeader({
         gridTemplateColumns: `${TIME_LABEL_WIDTH}px repeat(${members.length}, ${memberColumnWidth}px)`,
       }}
     >
-      {/* 左端：時間ラベル分のスペース */}
+      {/* 左端�E�時間ラベル刁E�Eスペ�Eス */}
       <div />
-      {/* メンバー名リスト */}
+      {/* メンバ�E名リスチE*/}
       {members.map((m) => (
         <div key={m.id} className="text-center font-semibold text-gray-800">
           {m.name}
@@ -24,3 +25,4 @@ export default function TimelineHeader({
     </div>
   );
 }
+

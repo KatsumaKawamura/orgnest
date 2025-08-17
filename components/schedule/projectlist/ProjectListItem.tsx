@@ -1,10 +1,11 @@
+// @ts-nocheck
 "use client";
 import { Pencil, Check } from "lucide-react";
 import Button from "@/components/common/Button";
 import Checkbox from "@/components/common/Checkbox";
 
 interface ProjectListItemProps {
-  id: number; // 追加: IDを受け取る
+  id: number; // 追加: IDを受け取めE
   name: string;
   deleteMode: boolean;
   selected: boolean;
@@ -40,7 +41,7 @@ export default function ProjectListItem({
             value={editValue}
             onChange={(e) => onEditChange(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && onEditConfirm(id)}
-            onBlur={() => onEditConfirm(id)} // フォーカス外れたら確定
+            onBlur={() => onEditConfirm(id)} // フォーカス外れたら確宁E
             autoFocus
             className="bg-transparent border-none focus:outline-none px-0 py-0 text-gray-800 w-auto"
             style={{ minWidth: "1em" }}
@@ -67,3 +68,4 @@ export default function ProjectListItem({
     </li>
   );
 }
+

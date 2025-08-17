@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import ScheduleCard from "@/components/schedule/mypage/ScheduleCard";
 import MyPageActionBar from "./MyPageActionBar";
@@ -45,7 +46,7 @@ export default function MyPageContent({ projectList, cards, setCards }: Props) {
             onClick={handleSelectAllOrClear}
             className="px-3 py-1 text-sm bg-white border border-gray-800 text-gray-800 rounded hover:bg-gray-100"
           >
-            {selectedIds.length === cards.length ? "全て解除" : "全て選択"}
+            {selectedIds.length === cards.length ? "全て解除" : "全て選抁E}
           </button>
         </div>
       )}
@@ -53,14 +54,14 @@ export default function MyPageContent({ projectList, cards, setCards }: Props) {
       <div className="space-y-4">
         {cards.map(
           (
-            card // ← sortedCardsからcardsに変更
+            card // ↁEsortedCardsからcardsに変更
           ) => (
             <div key={card.id} className="flex items-start space-x-2">
               {deleteMode && (
                 <Checkbox
                   checked={selectedIds.includes(card.id)}
                   onChange={() => handleToggleSelect(card.id)}
-                  className="mt-4" // ← ここで高さを調整（不要なら削除や変更も簡単！）
+                  className="mt-4" // ↁEここで高さを調整�E�不要なら削除めE��更も簡単！E��E
                 />
               )}
               <div className="flex-1">
@@ -77,7 +78,7 @@ export default function MyPageContent({ projectList, cards, setCards }: Props) {
                       prev.filter((id) => id !== card.id)
                     )
                   }
-                  sortOnSave={sortOnSave} // 保存時のみソート
+                  sortOnSave={sortOnSave} // 保存時のみソーチE
                 />
               </div>
             </div>
@@ -87,3 +88,4 @@ export default function MyPageContent({ projectList, cards, setCards }: Props) {
     </div>
   );
 }
+

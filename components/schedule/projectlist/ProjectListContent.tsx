@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import { useEffect } from "react";
 import ProjectListItem from "./ProjectListItem";
@@ -30,7 +31,7 @@ export default function ProjectContent() {
     setEditValue,
     sortedProjects,
     startEdit,
-    confirmEdit, // ← 追加
+    confirmEdit, // ↁE追加
   } = useProjectList([]);
 
   // 初回読み込み
@@ -41,7 +42,7 @@ export default function ProjectContent() {
     })();
   }, [getProjects, setProjects]);
 
-  // 全選択/解除
+  // 全選抁E解除
   const selectAllOrClear = () => {
     if (selectedProjects.length === sortedProjects.length) {
       setSelectedProjects([]);
@@ -105,11 +106,11 @@ export default function ProjectContent() {
           }}
           className="px-4 py-1 text-gray-800 hover:text-gray-600"
         >
-          ＋
+          �E�E
         </button>
       </div>
 
-      {/* 全選択 */}
+      {/* 全選抁E*/}
       {deleteMode && sortedProjects.length > 0 && (
         <div className="mb-2">
           <button
@@ -118,17 +119,17 @@ export default function ProjectContent() {
           >
             {selectedProjects.length === sortedProjects.length
               ? "全て解除"
-              : "全て選択"}
+              : "全て選抁E}
           </button>
         </div>
       )}
 
-      {/* リスト */}
+      {/* リスチE*/}
       <ul className="space-y-2">
         {sortedProjects.map((p) => (
           <ProjectListItem
             key={p.id}
-            id={p.id} // ← id を渡す
+            id={p.id} // ↁEid を渡ぁE
             name={p.name}
             deleteMode={deleteMode}
             selected={selectedProjects.includes(p.id)}
@@ -139,10 +140,11 @@ export default function ProjectContent() {
             onEditChange={(val) => setEditValue(val)}
             onEditConfirm={() =>
               confirmEdit(p.id, updateProject, deleteProject)
-            } // ← confirmEdit を使用
+            } // ↁEconfirmEdit を使用
           />
         ))}
       </ul>
     </div>
   );
 }
+

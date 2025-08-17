@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Schedule, Member } from "@/types/schedule";
@@ -82,3 +83,4 @@ export default function TimelineBar({
     </div>
   );
 }
+

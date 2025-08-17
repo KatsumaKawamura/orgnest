@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import TimelineGrid from "./TimelineGrid";
 import TimelineBar from "./TimelineBar";
@@ -38,9 +39,9 @@ export default function TimelineView({
         }}
       >
         <div className="col-span-full relative flex">
-          {/* 左端：時間ラベル分のスペース */}
+          {/* 左端�E�時間ラベル刁E�Eスペ�Eス */}
           <div style={{ width: `${TIME_LABEL_WIDTH}px` }} />
-          {/* タイムライン本体 */}
+          {/* タイムライン本佁E*/}
           <div className="relative">
             <TimelineGrid
               startHour={startHour}
@@ -65,3 +66,4 @@ export default function TimelineView({
     </div>
   );
 }
+

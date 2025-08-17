@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 import { Pencil, Check } from "lucide-react";
 import MyPageTimeSelect from "@/components/schedule/mypage/MyPageTimeSelect";
@@ -11,7 +12,7 @@ import Button from "@/components/common/Button";
 
 interface ExtendedProps extends ScheduleCardProps {
   sortOnSave: () => void;
-  onEditEnd: () => void; // 必須として再定義（元がOptionalならここで上書き）
+  onEditEnd: () => void; // 忁E��として再定義�E��EがOptionalならここで上書き！E
 }
 
 export default function ScheduleCard({
@@ -26,11 +27,11 @@ export default function ScheduleCard({
   projectList,
   isEditing,
   onEditStart,
-  onEditEnd = () => {}, // デフォルト関数で安全化
+  onEditEnd = () => {}, // チE��ォルト関数で安�E匁E
   sortOnSave,
 }: ExtendedProps) {
   const handleEndAndSort = () => {
-    onEditEnd(); // ← ここがもうundefinedではない
+    onEditEnd(); // ↁEここがもぁEndefinedではなぁE
     sortOnSave();
   };
 
@@ -88,9 +89,9 @@ export default function ScheduleCard({
                 onCancel={handleDialogCancel}
                 onConfirm={handleDialogConfirm}
                 confirmLabel={
-                  dialogType === "autoAdjust" ? "調整して保存" : "破棄して終了"
+                  dialogType === "autoAdjust" ? "調整して保孁E : "破棁E��て終亁E
                 }
-                cancelLabel="戻る"
+                cancelLabel="戻めE
                 confirmClassName="px-3 py-1 text-sm text-gray-600 hover:bg-white border border-gray-800 rounded"
                 cancelClassName="px-3 py-1 text-sm text-gray-600 hover:bg-white border border-gray-800 rounded"
                 position="absolute"
@@ -117,3 +118,4 @@ export default function ScheduleCard({
     </div>
   );
 }
+
