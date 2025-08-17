@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import Button from "@/components/common/Button";
-import useModalActionRoving from "@/hooks/useModalActionRoving";
-import { useFadeModal } from "@/components/common/FadeModalWrapper";
+import { useRef } from "react";
+import ActionsRow from "@/components/common/ActionsRow";
 
 interface ConfirmDialogProps {
   title?: string;
@@ -12,8 +10,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
-  /** FadeModalWrapper(asChild) の子として使う前提（true固定推奨） */
-  asModalChild?: boolean;
+  asModalChild?: boolean; // asChild 前提
 }
 
 export default function ConfirmDialog({
@@ -25,114 +22,7 @@ export default function ConfirmDialog({
   onCancel,
   asModalChild = true,
 }: ConfirmDialogProps) {
-  // asChild前提：フェード閉じを必ず経由
-  const { close } = useFadeModal();
-
   const panelRef = useRef<HTMLDivElement | null>(null);
-  const cancelRef = useRef<HTMLButtonElement | null>(null);
-  const okRef = useRef<HTMLButtonElement | null>(null);
-
-  const roving = useModalActionRoving({ loop: false, overrideInput: true });
-  const lastAction = useRef<"cancel" | "ok">("cancel");
-
-  useEffect(() => {
-    (cancelRef.current ?? okRef.current)?.focus();
-  }, []);
-
-  const rememberLastAction = (kind: "cancel" | "ok") => () => {
-    lastAction.current = kind;
-  };
-
-  const focusBackToActions = useCallback((prefer?: "cancel" | "ok") => {
-    const target =
-      prefer === "ok"
-        ? okRef.current
-        : prefer === "cancel"
-        ? cancelRef.current
-        : lastAction.current === "ok"
-        ? okRef.current
-        : cancelRef.current;
-    target?.focus();
-  }, []);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const panel = panelRef.current;
-      if (!panel) return;
-
-      const tgt = e.target as HTMLElement | null;
-      const inPanel = !!(tgt && panel.contains(tgt));
-      const inActions = inPanel ? tgt!.closest("[data-confirm-actions]") : null;
-
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-        // 先にフェード閉じ → フェード完了後 onClose でアンマウント
-        close();
-        onCancel();
-        return;
-      }
-
-      if (!inActions) {
-        if (e.key === "ArrowLeft") {
-          e.preventDefault();
-          e.stopPropagation();
-          focusBackToActions("cancel");
-          return;
-        }
-        if (e.key === "ArrowRight") {
-          e.preventDefault();
-          e.stopPropagation();
-          focusBackToActions("ok");
-          return;
-        }
-        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-          e.preventDefault();
-          e.stopPropagation();
-          focusBackToActions();
-          return;
-        }
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.stopPropagation();
-          focusBackToActions("ok");
-          okRef.current?.click();
-          return;
-        }
-        if (e.key.length === 1) {
-          focusBackToActions();
-          return;
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handler, true);
-    return () => document.removeEventListener("keydown", handler, true);
-  }, [focusBackToActions, close, onCancel]);
-
-  const onActionRowKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      e.stopPropagation();
-      cancelRef.current?.focus();
-      return;
-    }
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      e.stopPropagation();
-      okRef.current?.focus();
-      return;
-    }
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      close();
-      onCancel();
-      return;
-    }
-    // @ts-ignore
-    roving.onRootKeyDown(e);
-  };
 
   const renderMessage = (msg: string | string[]) => {
     if (Array.isArray(msg)) {
@@ -158,49 +48,17 @@ export default function ConfirmDialog({
       </h2>
       <div className="text-sm leading-6">{renderMessage(message)}</div>
 
-      <div
-        ref={roving.rowRef}
-        data-confirm-actions
-        role="group"
-        aria-orientation="horizontal"
-        className="mt-6 flex justify-center gap-4"
-        onKeyDown={onActionRowKeyDown}
-      >
-        <div>
-          <Button
-            ref={cancelRef}
-            variant="secondary"
-            onClick={() => {
-              close();
-              onCancel();
-            }}
-            onFocus={rememberLastAction("cancel")}
-            data-action="cancel"
-            data-enter-ignore
-          >
-            {cancelLabel}
-          </Button>
-        </div>
-        <div>
-          <Button
-            ref={okRef}
-            variant="primary"
-            onClick={() => {
-              close();
-              onConfirm();
-            }}
-            onFocus={rememberLastAction("ok")}
-            data-action="primary"
-            data-enter
-          >
-            {confirmLabel}
-          </Button>
-        </div>
-      </div>
+      <ActionsRow
+        className="mt-6"
+        cancelLabel={cancelLabel}
+        confirmLabel={confirmLabel}
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+        horizontalOnly
+      />
     </div>
   );
 
-  // 非 asChild の簡易描画は廃止推奨（必要なら別コンポーネントで）
   if (!asModalChild) return Panel;
   return Panel;
 }

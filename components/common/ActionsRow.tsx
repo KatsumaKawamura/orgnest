@@ -5,32 +5,24 @@ import Button from "@/components/common/Button";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
 import { useFadeModal } from "@/components/common/FadeModalWrapper";
 
-type Props = {
-  /** 左=戻る */
-  cancelLabel?: string;
-  /** 右=登録する */
-  confirmLabel?: string;
-  /** 押下時：必ず close() → onXxx() の順で呼ぶ */
+export type ActionsRowProps = {
+  cancelLabel?: string; // 左
+  confirmLabel?: string; // 右
   onCancel: () => void;
   onConfirm: () => void;
-  /** クラス */
   className?: string;
+  /** 左右だけ運用（確認/レビュー用途）なので true 固定でOK */
+  horizontalOnly?: boolean;
 };
 
-/**
- * モーダル内の「アクション行」コンポーネント。
- * - ←/→でフォーカス移動
- * - Enterで「登録する」
- * - Escで「戻る」
- * - パネル外フォーカス時もキーで“引き込み”
- */
-export default function ReviewActions({
-  cancelLabel = "戻る",
-  confirmLabel = "登録する",
+export default function ActionsRow({
+  cancelLabel = "キャンセル",
+  confirmLabel = "OK",
   onCancel,
   onConfirm,
   className,
-}: Props) {
+  horizontalOnly = true,
+}: ActionsRowProps) {
   const { close } = useFadeModal();
 
   const rowRef = useRef<HTMLDivElement | null>(null);
@@ -41,7 +33,6 @@ export default function ReviewActions({
   const roving = useModalActionRoving({ loop: true, overrideInput: true });
 
   useEffect(() => {
-    // 初期フォーカスは data-enter（= OK）
     const enter = rowRef.current?.querySelector<HTMLElement>("[data-enter]");
     enter?.focus();
   }, []);
@@ -58,7 +49,7 @@ export default function ReviewActions({
     (target ?? okRef.current ?? cancelRef.current)?.focus();
   }, []);
 
-  // 外側からのキー“引き込み”
+  // 外側フォーカス時でもキーで“引き込み”
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const row = rowRef.current;
@@ -88,7 +79,7 @@ export default function ReviewActions({
           focusBack("ok");
           return;
         }
-        if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+        if (!horizontalOnly && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
           e.preventDefault();
           e.stopPropagation();
           focusBack();
@@ -110,7 +101,7 @@ export default function ReviewActions({
 
     document.addEventListener("keydown", handler, true);
     return () => document.removeEventListener("keydown", handler, true);
-  }, [close, onCancel, focusBack]);
+  }, [close, onCancel, focusBack, horizontalOnly]);
 
   const onRowKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft") {
@@ -143,7 +134,6 @@ export default function ReviewActions({
         // @ts-ignore
         roving.rowRef.current = node;
       }}
-      data-review-actions
       role="group"
       aria-orientation="horizontal"
       className={["mt-6 flex justify-center gap-3", className]

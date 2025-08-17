@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useFadeModal } from "@/components/common/FadeModalWrapper";
 import ReviewFieldRow from "@/components/auth/ReviewFieldRow";
-import ReviewActions from "@/components/auth/ReviewActions";
+import ActionsRow from "@/components/common/ActionsRow";
 
 type Values = {
   userId: string;
@@ -43,7 +43,7 @@ export default function RegisterReviewDialog({
   labelWidth = "8rem",
   fieldWidth = "20rem",
 }: Props) {
-  // ここでは close() を直接呼ばない（閉じるのは ReviewActions の責務）
+  // ここでは close() を直接呼ばない（閉じるのは ActionsRow の責務）
   useFadeModal();
 
   const L = useMemo(
@@ -109,13 +109,14 @@ export default function RegisterReviewDialog({
         />
       </div>
 
-      {/* ボタン群（キー操作込み） */}
-      <ReviewActions
+      {/* ボタン群（左右キー操作＋Enter/Esc 付き） */}
+      <ActionsRow
         className="mt-6"
         cancelLabel={cancelLabel}
         confirmLabel={confirmLabel}
         onCancel={onCancel}
         onConfirm={onConfirm}
+        horizontalOnly
       />
     </div>
   );
