@@ -1,7 +1,8 @@
+// components/auth/RegisterModal.tsx
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/router"; // Pages Router
+import { useRouter } from "next/router"; // Pages Router 継続
 import FadeModalWrapper, {
   useFadeModal,
 } from "@/components/common/FadeModalWrapper";
@@ -10,7 +11,7 @@ import ProgressModal from "@/components/common/ProgressModal";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import RegisterFormCard from "@/components/auth/RegisterFormCard";
 import RegisterReviewDialog from "@/components/auth/RegisterReviewDialog";
-import { useRegisterForm } from "@/hooks/useRegisterForm";
+import { useRegisterFormV2 } from "@/hooks/useRegisterFormV2"; // ★V2ラッパーを使用
 import { useProgressOverlay } from "@/hooks/useProgressOverlay";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
 
@@ -22,8 +23,8 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
   const router = useRouter();
   const { close } = useFadeModal();
 
-  // 入力 + リアルタイム検証
-  const form = useRegisterForm();
+  // 入力 + リアルタイム検証（正準型で受けられる）
+  const form = useRegisterFormV2();
 
   // 進捗オーバーレイ
   const { show, setShow, status, runWithMinDelay } = useProgressOverlay();
@@ -53,15 +54,13 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
 
   // 確認：OK（破棄して親モーダルを閉じる＝外側の close）
   const handleDiscardConfirm = () => {
-    // ここではネスト内の確認ダイアログは自分で close() 済み（ConfirmDialog側修正）
-    // 親モーダル（登録フォーム本体）を閉じる
     close();
     onClose?.();
   };
 
-  // 実際の登録処理（既存のまま）
+  // 実際の登録処理（checking を新APIで判定）
   const handleRegister = async () => {
-    if (submitting || form.hasBlockingError || form.checking) return;
+    if (submitting || form.hasBlockingError || form.checking.userId) return;
 
     setSubmitting(true);
 
@@ -121,16 +120,16 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
 
   // 「登録」ボタン押下 → まずはレビュー表示
   const handleSubmitClick = () => {
-    if (submitting || form.hasBlockingError || form.checking) return;
+    if (submitting || form.hasBlockingError || form.checking.userId) return;
     setShowPreReview(true);
   };
 
-  // Review: 登録する（※ここで show を直接落とさない）
+  // Review: 登録する
   const handlePreReviewConfirm = async () => {
     await handleRegister();
   };
 
-  // Review: 戻る（※ここで show を直接落とさない）
+  // Review: 戻る
   const handlePreReviewCancel = () => {
     // noop: 子が close() → onClose で setShowPreReview(false)
   };
@@ -147,8 +146,8 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
           userName: form.userName,
         }}
         errors={form.fieldErrors}
-        availability={form.availability}
-        checking={form.checking}
+        availability={form.availability} // { userId?: 'unknown' | 'available' | 'taken' }
+        checking={form.checking} // { userId: boolean }
         submitting={submitting}
         onChange={{
           setUserId: form.setUserId,
@@ -159,7 +158,9 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
         }}
         onCancel={handleCancel}
         onSubmit={handleSubmitClick}
-        submitDisabled={submitting || form.hasBlockingError || form.checking}
+        submitDisabled={
+          submitting || form.hasBlockingError || form.checking.userId
+        }
         actionRowRef={rowRef}
         onRootKeyDown={onRootKeyDown}
       />
@@ -184,8 +185,8 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
             maskPassword={true}
             cancelLabel="戻る"
             confirmLabel="登録する"
-            onCancel={handlePreReviewCancel} // ← 子が close()、ここでは状態操作しない
-            onConfirm={handlePreReviewConfirm} // ← 子が close()、ここでは状態操作しない
+            onCancel={handlePreReviewCancel}
+            onConfirm={handlePreReviewConfirm}
           />
         </FadeModalWrapper>
       )}
@@ -243,7 +244,7 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
             onCancel={() => {
               /* 子がclose() → onCloseでOFF */
             }}
-            onConfirm={handleDiscardConfirm} // 子がclose() → その後、親モーダルclose()
+            onConfirm={handleDiscardConfirm}
           />
         </FadeModalWrapper>
       )}
