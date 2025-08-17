@@ -3,110 +3,100 @@
 import { useCallback, useRef } from "react";
 
 type Options = {
-  loop?: boolean; // 端でループするか（既定: true）
-  overrideInput?: boolean; // 入力中でも ←/→ で“引き込む”か（既定: true）
+  loop?: boolean; // 端ループ
+  overrideInput?: boolean; // 入力中でも奪うか（既定 false）
 };
 
-const isEditable = (el: Element | null) => {
-  if (!el || !(el instanceof HTMLElement)) return false;
-  const tag = el.tagName;
-  return (
-    tag === "INPUT" ||
-    tag === "TEXTAREA" ||
-    (el as HTMLElement).isContentEditable === true
+function isWithin(el: Element | null, container: HTMLElement | null) {
+  return !!(el && container && container.contains(el));
+}
+
+function isRole(el: Element | null, role: string) {
+  return !!(el instanceof HTMLElement && el.getAttribute("role") === role);
+}
+
+function isTextEditable(el: EventTarget | null): boolean {
+  if (!(el instanceof HTMLElement)) return false;
+  if (el.isContentEditable) return true;
+  if (isRole(el, "textbox") || isRole(el, "combobox")) return true;
+  if (el instanceof HTMLTextAreaElement) return true;
+  if (el instanceof HTMLInputElement) {
+    const t = (el.type || "text").toLowerCase();
+    const textLikes = new Set([
+      "text",
+      "search",
+      "email",
+      "url",
+      "tel",
+      "password",
+      "number",
+    ]);
+    if (textLikes.has(t)) return true;
+  }
+  return false;
+}
+
+function getActionButtons(row: HTMLElement): HTMLButtonElement[] {
+  return Array.from(
+    row.querySelectorAll<HTMLButtonElement>("button:not([disabled])")
   );
+}
+
+// 共通プロパティだけを参照するためのナロー型
+type KeyLikeEvent = {
+  key: string;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  preventDefault: () => void;
+  target: EventTarget | null;
 };
 
-export function useModalActionRoving(options: Options = {}) {
-  const { loop = true, overrideInput = true } = options;
+export default function useModalActionRoving(options: Options = {}) {
+  const { loop = true, overrideInput = false } = options;
+  const rowRef = useRef<HTMLDivElement | null>(null);
 
-  // ✅ 要素型のみを指定。current の型は自動で HTMLDivElement | null
-  const rowRef = useRef<HTMLDivElement>(null);
-
-  const focusFirstEnabled = (buttons: HTMLButtonElement[]) => {
-    const b = buttons.find((btn) => !btn.disabled);
-    b?.focus();
-  };
-
-  const focusLastEnabled = (buttons: HTMLButtonElement[]) => {
-    for (let i = buttons.length - 1; i >= 0; i--) {
-      if (!buttons[i].disabled) {
-        buttons[i].focus();
-        break;
-      }
-    }
-  };
-
+  // ここを「広い受け取り型」に変更
   const onRootKeyDown = useCallback(
-    (e: KeyboardEvent | React.KeyboardEvent) => {
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    (e: KeyboardEvent | React.KeyboardEvent<Element>) => {
+      const ev = e as unknown as KeyLikeEvent;
+
+      // 修飾キー中は無視
+      if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
+
+      // 入力中は奪わない（overrideInput が true の時のみ許可）
+      if (!overrideInput && isTextEditable(ev.target)) return;
+
+      if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
 
       const row = rowRef.current;
       if (!row) return;
 
-      const active = (document.activeElement ?? null) as HTMLElement | null;
-
-      // 入力中の左右を奪うかどうか
-      if (!overrideInput && isEditable(active)) {
-        return;
-      }
-
-      // 行内の「有効なボタン」だけを候補にする
-      const buttons = Array.from(
-        row.querySelectorAll<HTMLButtonElement>("button:not([disabled])")
-      );
+      const targetEl = ev.target as Element | null;
+      const buttons = getActionButtons(row);
       if (buttons.length === 0) return;
 
-      const inRow = !!active && row.contains(active);
+      // 行内にフォーカスがある場合のみハンドリング
+      if (!isWithin(targetEl, row)) return;
 
-      // ① 行の外 → “引き込み”
-      if (!inRow) {
-        const targetSelector =
-          e.key === "ArrowLeft"
-            ? '[data-action="cancel"]'
-            : '[data-action="primary"]';
+      const active = document.activeElement as HTMLElement | null;
+      const idx = buttons.findIndex((b) => b === active);
+      let current = idx >= 0 ? idx : 0;
 
-        const target =
-          row.querySelector<HTMLButtonElement>(
-            `${targetSelector}:not([disabled])`
-          ) ||
-          // フォールバック（cancel/primary が無効だった場合）
-          (e.key === "ArrowLeft" ? buttons[0] : buttons[buttons.length - 1]);
-
-        if (target) {
-          e.preventDefault();
-          target.focus();
-        }
+      if (ev.key === "ArrowLeft") {
+        ev.preventDefault();
+        const prev = current - 1;
+        if (prev >= 0) buttons[prev].focus();
+        else if (loop) buttons[buttons.length - 1].focus();
         return;
       }
 
-      // ② 行の中 → roving
-      const i = buttons.indexOf(active as HTMLButtonElement);
-      if (i === -1) {
-        // 行の中だが候補外（tabIndex等でズレた）→ 近いほうへフォールバック
-        e.preventDefault();
-        e.key === "ArrowLeft"
-          ? focusLastEnabled(buttons)
-          : focusFirstEnabled(buttons);
+      if (ev.key === "ArrowRight") {
+        ev.preventDefault();
+        const next = current + 1;
+        if (next < buttons.length) buttons[next].focus();
+        else if (loop) buttons[0].focus();
         return;
-      }
-
-      e.preventDefault();
-      if (e.key === "ArrowLeft") {
-        const prev = i - 1;
-        if (prev >= 0) {
-          buttons[prev].focus();
-        } else if (loop) {
-          buttons[buttons.length - 1].focus();
-        }
-      } else {
-        // ArrowRight
-        const next = i + 1;
-        if (next < buttons.length) {
-          buttons[next].focus();
-        } else if (loop) {
-          buttons[0].focus();
-        }
       }
     },
     [loop, overrideInput]
@@ -114,5 +104,3 @@ export function useModalActionRoving(options: Options = {}) {
 
   return { rowRef, onRootKeyDown };
 }
-
-export default useModalActionRoving;

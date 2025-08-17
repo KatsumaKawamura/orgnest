@@ -44,3 +44,9 @@ a {
     color-scheme: dark;
   }
 }
+
+/* ==== Edge/IE のパスワード表示・クリアボタンを無効化 ==== */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}

@@ -167,7 +167,6 @@ export default function ConfirmDialog({
             onFocus={rememberLastAction("cancel")}
             data-action="cancel"
             data-enter-ignore
-            className="w-full"
           >
             {cancelLabel}
           </Button>
@@ -180,7 +179,6 @@ export default function ConfirmDialog({
             onFocus={rememberLastAction("ok")}
             data-action="primary"
             data-enter
-            className="w-full"
           >
             {confirmLabel}
           </Button>

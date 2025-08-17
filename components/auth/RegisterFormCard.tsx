@@ -5,6 +5,7 @@ import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import FieldHint from "@/components/common/FieldHint";
 import useArrowFormNav from "@/hooks/useArrowFormNav";
+import PasswordInput from "@/components/common/PasswordInput";
 
 type Props = {
   values: {
@@ -119,30 +120,30 @@ export default function RegisterFormCard({
         }
       />
 
-      {/* PASSWORD */}
-      <Input
-        type="password"
+      {/* PASSWORD（← ここを PasswordInput に） */}
+      <PasswordInput
         placeholder="PASSWORD"
         value={password}
         onChange={(e) => onChange.setPassword(e.target.value)}
         className="mb-1"
         disabled={submitting}
         aria-invalid={!!errors.password}
+        autoComplete="new-password"
       />
       <FieldHint
         message={errors.password}
         state={errors.password ? "neutral" : "neutral"}
       />
 
-      {/* CONFIRM PASSWORD */}
-      <Input
-        type="password"
+      {/* CONFIRM PASSWORD（← ここも PasswordInput に） */}
+      <PasswordInput
         placeholder="PASSWORD（確認用）"
         value={confirmPassword}
         onChange={(e) => onChange.setConfirmPassword(e.target.value)}
         className="mb-1"
         disabled={submitting}
         aria-invalid={!!errors.confirmPassword}
+        autoComplete="new-password"
       />
       <FieldHint
         message={errors.confirmPassword}

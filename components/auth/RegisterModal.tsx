@@ -10,6 +10,7 @@ import InfoModal from "@/components/common/InfoModal";
 import ProgressModal from "@/components/common/ProgressModal";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import RegisterFormCard from "@/components/auth/RegisterFormCard";
+import RegisterReviewDialog from "@/components/auth/RegisterReviewDialog";
 import { useRegisterForm } from "@/hooks/useRegisterForm";
 import { useProgressOverlay } from "@/hooks/useProgressOverlay";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
@@ -27,6 +28,9 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
 
   // 進捗オーバーレイ
   const { show, setShow, status, runWithMinDelay } = useProgressOverlay();
+
+  // 事前レビュー表示
+  const [showPreReview, setShowPreReview] = useState(false);
 
   // API 失敗などの通知用
   const [info, setInfo] = useState<{ title: string; message: string } | null>(
@@ -55,12 +59,12 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     onClose?.();
   };
 
+  // 実際の登録処理（既存のまま）
   const handleRegister = async () => {
     if (submitting || form.hasBlockingError || form.checking) return;
 
     setSubmitting(true);
 
-    // Progress を表示しつつ最低表示時間を担保して /api/register を実行
     const { ok, error } = await runWithMinDelay(async () => {
       const res = await fetch("/api/register", {
         method: "POST",
@@ -115,6 +119,21 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     }
   };
 
+  // 「登録」ボタン押下 → まずはレビュー表示
+  const handleSubmitClick = () => {
+    if (submitting || form.hasBlockingError || form.checking) return;
+    setShowPreReview(true);
+  };
+
+  // Review: 登録する
+  const handlePreReviewConfirm = async () => {
+    setShowPreReview(false);
+    await handleRegister();
+  };
+
+  // Review: 戻る
+  const handlePreReviewCancel = () => setShowPreReview(false);
+
   return (
     <>
       {/* 入力フォーム */}
@@ -138,11 +157,37 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
           setUserName: form.setUserName,
         }}
         onCancel={handleCancel}
-        onSubmit={handleRegister}
+        onSubmit={handleSubmitClick}
         submitDisabled={submitting || form.hasBlockingError || form.checking}
         actionRowRef={rowRef}
         onRootKeyDown={onRootKeyDown}
       />
+
+      {/* 入力内容の確認（asChild） */}
+      {showPreReview && (
+        <FadeModalWrapper onClose={() => setShowPreReview(false)} asChild>
+          <RegisterReviewDialog
+            title="入力内容の確認"
+            values={{
+              userId: form.userId,
+              password: form.password,
+              contact: form.contact,
+              userName: form.userName,
+            }}
+            labels={{
+              userId: "USER_ID",
+              password: "PASSWORD",
+              contact: "CONTACT",
+              userName: "USER_NAME",
+            }}
+            maskPassword={true} // 既定: 伏字表示
+            cancelLabel="戻る"
+            confirmLabel="登録する"
+            onCancel={handlePreReviewCancel}
+            onConfirm={handlePreReviewConfirm}
+          />
+        </FadeModalWrapper>
+      )}
 
       {/* 成功フロー：Progress（asChild） */}
       {show && (
@@ -178,7 +223,7 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
         </FadeModalWrapper>
       )}
 
-      {/* ★ キャンセル確認（asChild：OK/キャンセルのシンプル版） */}
+      {/* キャンセル確認（asChild） */}
       {showDiscardConfirm && (
         <FadeModalWrapper
           onClose={() => setShowDiscardConfirm(false)}
