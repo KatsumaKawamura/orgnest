@@ -5,14 +5,34 @@ import Button from "@/components/common/Button";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
 import { useFadeModal } from "@/components/common/FadeModalWrapper";
 
+/** 長期運用のための安定API */
 export type ActionsRowProps = {
-  cancelLabel?: string; // 左
-  confirmLabel?: string; // 右
+  /** ラベル */
+  cancelLabel?: string;
+  confirmLabel?: string;
+
+  /** ハンドラ */
   onCancel: () => void;
   onConfirm: () => void;
+
+  /** レイアウト */
+  align?: "center" | "between" | "end"; // 既定: center
   className?: string;
-  /** 左右だけ運用（確認/レビュー用途）なので true 固定でOK */
+
+  /** キー操作方針：確認/レビュー用途は true（既定） */
   horizontalOnly?: boolean;
+
+  /** 見た目（公式） */
+  size?: "sm" | "md" | "lg"; // ボタンサイズ（既定: md）
+  confirmVariant?: "primary" | "danger" | "neutral"; // 確定ボタンの意図（既定: primary）
+
+  /** 必要最低限の上書き（公式） */
+  confirmClassName?: string;
+  cancelClassName?: string;
+
+  /** 互換: 旧い呼び出しが使っていた position を残置 */
+  /** @deprecated 代わりに className/align を使用してください */
+  position?: string;
 };
 
 export default function ActionsRow({
@@ -20,8 +40,14 @@ export default function ActionsRow({
   confirmLabel = "OK",
   onCancel,
   onConfirm,
+  align = "center",
   className,
   horizontalOnly = true,
+  size = "md",
+  confirmVariant = "primary",
+  cancelClassName,
+  confirmClassName,
+  /** deprecated */ position,
 }: ActionsRowProps) {
   const { close } = useFadeModal();
 
@@ -49,12 +75,11 @@ export default function ActionsRow({
     (target ?? okRef.current ?? cancelRef.current)?.focus();
   }, []);
 
-  // 外側フォーカス時でもキーで“引き込み”
+  // 外側からキー引き込み（←→/Enter/Esc）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const row = rowRef.current;
       if (!row) return;
-
       const tgt = e.target as HTMLElement | null;
       const inActions = !!(tgt && row.contains(tgt));
 
@@ -127,6 +152,30 @@ export default function ActionsRow({
     roving.onRootKeyDown(e);
   };
 
+  const alignClass =
+    align === "between"
+      ? "justify-between"
+      : align === "end"
+      ? "justify-end"
+      : "justify-center";
+
+  // 旧互換 position を素直に className に足す
+  const wrapperClass = [
+    position, // @deprecated
+    "mt-6 flex gap-3",
+    alignClass,
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const confirmBtnVariant =
+    confirmVariant === "danger"
+      ? "danger"
+      : confirmVariant === "neutral"
+      ? "secondary"
+      : "primary";
+
   return (
     <div
       ref={(node) => {
@@ -136,15 +185,13 @@ export default function ActionsRow({
       }}
       role="group"
       aria-orientation="horizontal"
-      className={["mt-6 flex justify-center gap-3", className]
-        .filter(Boolean)
-        .join(" ")}
+      className={wrapperClass}
       onKeyDown={onRowKeyDown}
     >
       <Button
         ref={cancelRef}
         variant="secondary"
-        size="md"
+        size={size}
         onClick={() => {
           close();
           onCancel();
@@ -153,13 +200,15 @@ export default function ActionsRow({
         data-action="cancel"
         data-enter-ignore
         type="button"
+        className={cancelClassName}
       >
         {cancelLabel}
       </Button>
+
       <Button
         ref={okRef}
-        variant="primary"
-        size="md"
+        variant={confirmBtnVariant as any}
+        size={size}
         onClick={() => {
           close();
           onConfirm();
@@ -168,6 +217,7 @@ export default function ActionsRow({
         data-action="primary"
         data-enter
         type="button"
+        className={confirmClassName}
       >
         {confirmLabel}
       </Button>
