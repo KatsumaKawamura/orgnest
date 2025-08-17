@@ -138,7 +138,7 @@ export default function AccountSettingsModal({
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             className="mb-3"
-            placeholder="ログインに使用するID"
+            placeholder="USER_ID"
           />
 
           <label className="block text-sm font-medium mb-1">
@@ -148,23 +148,21 @@ export default function AccountSettingsModal({
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="mb-2"
-            placeholder="新しいパスワード"
+            placeholder="NEW_PASSWORD"
             autoComplete="new-password"
           />
           <PasswordInput
             value={passwordConfirm}
             onChange={(e) => setPasswordConfirm(e.target.value)}
             className="mb-3"
-            placeholder="新しいパスワード（確認）"
+            placeholder="NEW_PASSWORD（確認）"
             autoComplete="new-password"
           />
           {passwordError && (
             <p className="text-xs text-red-600 mb-2">{passwordError}</p>
           )}
 
-          <label className="block text-sm font-medium mb-1">
-            E-MAIL（CONTACT）
-          </label>
+          <label className="block text-sm font-medium mb-1">CONTACT</label>
           <Input
             type="email"
             value={email}

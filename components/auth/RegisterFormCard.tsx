@@ -91,6 +91,7 @@ export default function RegisterFormCard({
       </h2>
 
       {/* USER_ID */}
+      <label className="text-gray-800 block text-sm mb-1">・USER_ID</label>
       <Input
         type="text"
         placeholder="USER_ID（ログインに使用）"
@@ -121,6 +122,7 @@ export default function RegisterFormCard({
       />
 
       {/* PASSWORD（← ここを PasswordInput に） */}
+      <label className="text-gray-800 block text-sm mb-1">・PASSWORD</label>
       <PasswordInput
         placeholder="PASSWORD"
         value={password}
@@ -137,7 +139,7 @@ export default function RegisterFormCard({
 
       {/* CONFIRM PASSWORD（← ここも PasswordInput に） */}
       <PasswordInput
-        placeholder="PASSWORD（確認用）"
+        placeholder="PASSWORD（確認）"
         value={confirmPassword}
         onChange={(e) => onChange.setConfirmPassword(e.target.value)}
         className="mb-1"
@@ -151,6 +153,7 @@ export default function RegisterFormCard({
       />
 
       {/* CONTACT */}
+      <label className="text-gray-800 block text-sm mb-1">・CONTACT</label>
       <Input
         type="text"
         placeholder="E-MAIL（PASS再設定用）"
@@ -165,6 +168,7 @@ export default function RegisterFormCard({
       />
 
       {/* USER_NAME */}
+      <label className="text-gray-800 block text-sm mb-1">・USER_NAME</label>
       <Input
         type="text"
         placeholder="USER_NAME（アプリ内での表示名）"
