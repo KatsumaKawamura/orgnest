@@ -1,14 +1,26 @@
 // components/common/InfoModal.tsx
 "use client";
 import { forwardRef, useId } from "react";
-import Button from "@/components/common/Button";
-import { useFadeModal } from "@/components/common/FadeModalWrapper";
+import ActionsRow from "@/components/common/ActionsRow";
 
 interface InfoModalProps extends React.ComponentProps<"div"> {
   title?: string;
   message: string;
   confirmLabel?: string;
   onConfirm: () => void;
+
+  /** フッターの見た目/配置を上書きしたいときに */
+  actions?: Partial<
+    Pick<
+      React.ComponentProps<typeof ActionsRow>,
+      | "size"
+      | "confirmVariant"
+      | "align"
+      | "className"
+      | "confirmClassName"
+      | "horizontalOnly"
+    >
+  >;
 }
 
 const InfoModal = forwardRef<HTMLDivElement, InfoModalProps>(
@@ -19,19 +31,14 @@ const InfoModal = forwardRef<HTMLDivElement, InfoModalProps>(
       confirmLabel = "OK",
       onConfirm,
       className,
+      actions,
       ...rest
     },
     ref
   ) => {
-    const { close } = useFadeModal();
     const baseId = useId();
     const titleId = `info-title-${baseId}`;
     const descId = `info-desc-${baseId}`;
-
-    const handleConfirm = () => {
-      close();
-      onConfirm();
-    };
 
     return (
       <div
@@ -61,27 +68,29 @@ const InfoModal = forwardRef<HTMLDivElement, InfoModalProps>(
         {/* Body（スマホは下のバー分だけ余白多め） */}
         <div className="px-6 pb-24 sm:pb-6" />
 
-        {/* Action Bar */}
+        {/* Actions */}
         <div
           className="
             sticky bottom-0 bg-white/95 supports-[backdrop-filter]:bg-white/60 backdrop-blur p-4
             sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-0 sm:p-6 sm:pt-0
-            sm:flex sm:justify-center
           "
           style={{
             paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
           }}
         >
-          <Button
-            type="button"
-            variant="primary"
-            size="responsive"
-            fullWidth
-            onClick={handleConfirm}
-            data-autofocus
-          >
-            {confirmLabel}
-          </Button>
+          <ActionsRow
+            cancelLabel="キャンセル" // 非表示
+            confirmLabel={confirmLabel}
+            onCancel={() => {
+              /* no-op */
+            }}
+            onConfirm={onConfirm}
+            showCancel={false}
+            horizontalOnly
+            align="center"
+            size="md"
+            {...actions}
+          />
         </div>
       </div>
     );

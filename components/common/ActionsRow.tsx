@@ -5,7 +5,7 @@ import Button from "@/components/common/Button";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
 import { useFadeModal } from "@/components/common/FadeModalWrapper";
 
-/** 長期運用のための安定API */
+/** 長期運用のための安定API（Confirm/Info/Progressで共通使用） */
 export type ActionsRowProps = {
   /** ラベル */
   cancelLabel?: string;
@@ -19,18 +19,25 @@ export type ActionsRowProps = {
   align?: "center" | "between" | "end"; // 既定: center
   className?: string;
 
-  /** キー操作方針：確認/レビュー用途は true（既定） */
+  /** キー操作方針 */
   horizontalOnly?: boolean;
 
   /** 見た目（公式） */
-  size?: "sm" | "md" | "lg"; // ボタンサイズ（既定: md）
-  confirmVariant?: "primary" | "danger" | "neutral"; // 確定ボタンの意図（既定: primary）
+  size?: "sm" | "md" | "lg";
+  confirmVariant?: "primary" | "danger" | "neutral";
 
   /** 必要最低限の上書き（公式） */
   confirmClassName?: string;
   cancelClassName?: string;
 
-  /** 互換: 旧い呼び出しが使っていた position を残置 */
+  /** 単一ボタン運用（Info/Progress 用） */
+  showCancel?: boolean; // 既定: true
+  confirmDisabled?: boolean; // 既定: false
+
+  /** 実行順：true=onConfirm→close / false=close→onConfirm */
+  confirmFirst?: boolean; // 既定: false
+
+  /** 互換: 旧 position を残置（非推奨） */
   /** @deprecated 代わりに className/align を使用してください */
   position?: string;
 };
@@ -47,6 +54,9 @@ export default function ActionsRow({
   confirmVariant = "primary",
   cancelClassName,
   confirmClassName,
+  showCancel = true,
+  confirmDisabled = false,
+  confirmFirst = false,
   /** deprecated */ position,
 }: ActionsRowProps) {
   const { close } = useFadeModal();
@@ -63,19 +73,24 @@ export default function ActionsRow({
     enter?.focus();
   }, []);
 
-  const focusBack = useCallback((prefer?: "cancel" | "ok") => {
-    const target =
-      prefer === "ok"
-        ? okRef.current
-        : prefer === "cancel"
-        ? cancelRef.current
-        : last.current === "ok"
-        ? okRef.current
-        : cancelRef.current;
-    (target ?? okRef.current ?? cancelRef.current)?.focus();
-  }, []);
+  const focusBack = useCallback(
+    (prefer?: "cancel" | "ok") => {
+      const target =
+        prefer === "ok"
+          ? okRef.current
+          : prefer === "cancel"
+          ? showCancel
+            ? cancelRef.current
+            : okRef.current
+          : last.current === "ok" || !showCancel
+          ? okRef.current
+          : cancelRef.current;
+      (target ?? okRef.current ?? cancelRef.current)?.focus();
+    },
+    [showCancel]
+  );
 
-  // 外側からキー引き込み（←→/Enter/Esc）
+  // 外側からキー引き込み（←/→/Enter/Esc）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const row = rowRef.current;
@@ -95,7 +110,7 @@ export default function ActionsRow({
         if (e.key === "ArrowLeft") {
           e.preventDefault();
           e.stopPropagation();
-          focusBack("cancel");
+          focusBack(showCancel ? "cancel" : "ok");
           return;
         }
         if (e.key === "ArrowRight") {
@@ -113,8 +128,12 @@ export default function ActionsRow({
         if (e.key === "Enter") {
           e.preventDefault();
           e.stopPropagation();
-          focusBack("ok");
-          okRef.current?.click();
+          if (!confirmDisabled) {
+            focusBack("ok");
+            okRef.current?.click();
+          } else {
+            focusBack();
+          }
           return;
         }
         if (e.key.length === 1) {
@@ -126,13 +145,13 @@ export default function ActionsRow({
 
     document.addEventListener("keydown", handler, true);
     return () => document.removeEventListener("keydown", handler, true);
-  }, [close, onCancel, focusBack, horizontalOnly]);
+  }, [close, onCancel, focusBack, horizontalOnly, showCancel, confirmDisabled]);
 
   const onRowKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft") {
       e.preventDefault();
       e.stopPropagation();
-      cancelRef.current?.focus();
+      (showCancel ? cancelRef.current : okRef.current)?.focus();
       return;
     }
     if (e.key === "ArrowRight") {
@@ -159,7 +178,6 @@ export default function ActionsRow({
       ? "justify-end"
       : "justify-center";
 
-  // 旧互換 position を素直に className に足す
   const wrapperClass = [
     position, // @deprecated
     "mt-6 flex gap-3",
@@ -176,6 +194,17 @@ export default function ActionsRow({
       ? "secondary"
       : "primary";
 
+  const handleConfirmClick = () => {
+    if (confirmDisabled) return;
+    if (confirmFirst) {
+      onConfirm();
+      close();
+    } else {
+      close();
+      onConfirm();
+    }
+  };
+
   return (
     <div
       ref={(node) => {
@@ -188,35 +217,36 @@ export default function ActionsRow({
       className={wrapperClass}
       onKeyDown={onRowKeyDown}
     >
-      <Button
-        ref={cancelRef}
-        variant="secondary"
-        size={size}
-        onClick={() => {
-          close();
-          onCancel();
-        }}
-        onFocus={() => (last.current = "cancel")}
-        data-action="cancel"
-        data-enter-ignore
-        type="button"
-        className={cancelClassName}
-      >
-        {cancelLabel}
-      </Button>
+      {showCancel && (
+        <Button
+          ref={cancelRef}
+          variant="secondary"
+          size={size}
+          onClick={() => {
+            close();
+            onCancel();
+          }}
+          onFocus={() => (last.current = "cancel")}
+          data-action="cancel"
+          data-enter-ignore
+          type="button"
+          className={cancelClassName}
+        >
+          {cancelLabel}
+        </Button>
+      )}
 
       <Button
         ref={okRef}
         variant={confirmBtnVariant as any}
         size={size}
-        onClick={() => {
-          close();
-          onConfirm();
-        }}
+        onClick={handleConfirmClick}
         onFocus={() => (last.current = "ok")}
         data-action="primary"
-        data-enter
+        data-enter={confirmDisabled ? undefined : true}
+        data-enter-ignore={confirmDisabled ? true : undefined}
         type="button"
+        disabled={confirmDisabled}
         className={confirmClassName}
       >
         {confirmLabel}

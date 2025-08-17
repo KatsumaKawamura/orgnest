@@ -2,8 +2,7 @@
 "use client";
 
 import { forwardRef, useEffect, useId, useRef } from "react";
-import Button from "@/components/common/Button";
-import { useFadeModal } from "@/components/common/FadeModalWrapper";
+import ActionsRow from "@/components/common/ActionsRow";
 
 type Status = "processing" | "done";
 
@@ -14,6 +13,17 @@ interface ProgressModalProps extends React.ComponentProps<"div"> {
   confirmLabel?: string; // done時のOKラベル
   status: Status; // "processing" | "done"
   onConfirm: () => void; // OK押下時
+  actions?: Partial<
+    Pick<
+      React.ComponentProps<typeof ActionsRow>,
+      | "size"
+      | "confirmVariant"
+      | "align"
+      | "className"
+      | "confirmClassName"
+      | "horizontalOnly"
+    >
+  >;
 }
 
 const ProgressModal = forwardRef<HTMLDivElement, ProgressModalProps>(
@@ -26,11 +36,11 @@ const ProgressModal = forwardRef<HTMLDivElement, ProgressModalProps>(
       status,
       onConfirm,
       className,
+      actions,
       ...rest
     },
     ref
   ) => {
-    const { close } = useFadeModal();
     const baseId = useId();
     const titleId = `progress-title-${baseId}`;
     const descId = `progress-desc-${baseId}`;
@@ -45,12 +55,6 @@ const ProgressModal = forwardRef<HTMLDivElement, ProgressModalProps>(
         );
       }
     }, [processing]);
-
-    const handleConfirm = () => {
-      // 遷移/親処理を先に、閉じるのは後
-      onConfirm();
-      close();
-    };
 
     return (
       <div
@@ -101,31 +105,32 @@ const ProgressModal = forwardRef<HTMLDivElement, ProgressModalProps>(
           </div>
         </div>
 
-        {/* Action Bar */}
+        {/* Actions */}
         <div
           className="
             sticky bottom-0 bg-white/95 supports-[backdrop-filter]:bg-white/60 backdrop-blur p-4
             sm:static sm:border-0 sm:bg-transparent sm:backdrop-blur-0 sm:p-6 sm:pt-0
-            sm:flex sm:justify-center
           "
           style={{
             paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 1rem)",
           }}
         >
-          <Button
-            ref={okRef}
-            type="button"
-            variant="primary"
-            size="responsive"
-            fullWidth
-            onClick={handleConfirm}
-            disabled={processing}
-            data-enter={processing ? undefined : true}
-            data-enter-ignore={processing ? true : undefined}
-            className={processing ? "invisible" : undefined}
-          >
-            {confirmLabel}
-          </Button>
+          <ActionsRow
+            cancelLabel="キャンセル" // 非表示
+            confirmLabel={confirmLabel}
+            onCancel={() => {
+              /* no-op */
+            }}
+            onConfirm={onConfirm} // 現行挙動：onConfirm → close を維持
+            showCancel={false}
+            confirmDisabled={processing} // 処理中は押せない
+            confirmFirst // ← 実行順を維持（onConfirm → close）
+            horizontalOnly
+            align="center"
+            size="md"
+            confirmClassName={processing ? "invisible" : undefined} // 既存見た目を踏襲
+            {...actions}
+          />
         </div>
       </div>
     );
