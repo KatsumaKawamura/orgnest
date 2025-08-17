@@ -6,6 +6,7 @@ import Input from "@/components/common/Input";
 import FieldHint from "@/components/common/FieldHint";
 import useArrowFormNav from "@/hooks/useArrowFormNav";
 import PasswordInput from "@/components/common/PasswordInput";
+import type { Availability, Checking } from "@/types/register";
 
 type Props = {
   values: {
@@ -22,9 +23,9 @@ type Props = {
     contact?: string;
     userName?: string;
   };
-  // 互換性のために複数の形を許可（旧: boolean/null, 新: オブジェクト）
-  availability: { userId?: "unknown" | "available" | "taken" } | boolean | null;
-  checking: { userId: boolean } | boolean;
+  /** ★新APIのみ */
+  availability: Availability; // { userId?: "unknown" | "available" | "taken" }
+  checking: Checking; // { userId: boolean }
   submitting: boolean;
   onChange: {
     setUserId: (v: string) => void;
@@ -37,7 +38,6 @@ type Props = {
   onSubmit: () => void;
   submitDisabled: boolean;
 
-  // React.Ref<HTMLDivElement> なので MutableRefObject / Callback 両対応
   actionRowRef: Ref<HTMLDivElement>;
   onRootKeyDown: (e: React.KeyboardEvent | KeyboardEvent) => void;
 };
@@ -64,26 +64,17 @@ export default function RegisterFormCard({
     caretOnFocus: "end",
   });
 
-  // 旧API互換: availability を統一表現に正規化
-  let availabilityStatus: "unknown" | "available" | "taken" | undefined;
-  if (availability === true) availabilityStatus = "available";
-  else if (availability === false) availabilityStatus = "taken";
-  else if (availability && typeof availability === "object")
-    availabilityStatus = availability.userId;
-  else availabilityStatus = "unknown";
-
-  // 旧API互換: checking を boolean に正規化
-  const isChecking =
-    typeof checking === "object" ? !!checking.userId : !!checking;
+  // ★ 旧API互換の正規化は削除。新型のみを参照。
+  const availabilityStatus = availability.userId ?? "unknown";
+  const isChecking = !!checking.userId;
 
   return (
     <div
       ref={formRef}
       className="bg-white text-gray-800 p-6 rounded shadow-lg w-[min(92vw,420px)]"
       onKeyDown={(e) => {
-        // ↑/↓ を先に、←/→（roving）を後に
-        onFormKeyDown(e);
-        onRootKeyDown(e);
+        onFormKeyDown(e); // ↑/↓
+        onRootKeyDown(e); // ←/→
       }}
     >
       <h2 className="text-lg font-semibold mb-4" data-modal-title>
@@ -121,7 +112,7 @@ export default function RegisterFormCard({
         }
       />
 
-      {/* PASSWORD（← ここを PasswordInput に） */}
+      {/* PASSWORD */}
       <label className="text-gray-800 block text-sm mb-1">・PASSWORD</label>
       <PasswordInput
         placeholder="PASSWORD"
@@ -132,12 +123,9 @@ export default function RegisterFormCard({
         aria-invalid={!!errors.password}
         autoComplete="new-password"
       />
-      <FieldHint
-        message={errors.password}
-        state={errors.password ? "neutral" : "neutral"}
-      />
+      <FieldHint message={errors.password} state="neutral" />
 
-      {/* CONFIRM PASSWORD（← ここも PasswordInput に） */}
+      {/* CONFIRM PASSWORD */}
       <PasswordInput
         placeholder="PASSWORD（確認）"
         value={confirmPassword}
@@ -147,10 +135,7 @@ export default function RegisterFormCard({
         aria-invalid={!!errors.confirmPassword}
         autoComplete="new-password"
       />
-      <FieldHint
-        message={errors.confirmPassword}
-        state={errors.confirmPassword ? "neutral" : "neutral"}
-      />
+      <FieldHint message={errors.confirmPassword} state="neutral" />
 
       {/* CONTACT */}
       <label className="text-gray-800 block text-sm mb-1">・CONTACT</label>
@@ -164,7 +149,7 @@ export default function RegisterFormCard({
       />
       <FieldHint
         message={errors.contact ?? "任意入力です。ログイン後に再設定できます。"}
-        state={errors.contact ? "neutral" : "neutral"}
+        state="neutral"
       />
 
       {/* USER_NAME */}
@@ -182,9 +167,10 @@ export default function RegisterFormCard({
         message={
           errors.userName ?? "任意入力です。ログイン後に再設定できます。"
         }
-        state={errors.userName ? "neutral" : "neutral"}
+        state="neutral"
       />
 
+      {/* ボタン群 */}
       <div
         ref={actionRowRef}
         role="group"
