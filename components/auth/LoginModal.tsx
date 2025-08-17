@@ -9,6 +9,7 @@ import FadeModalWrapper, {
   useFadeModal,
 } from "@/components/common/FadeModalWrapper";
 import Input from "@/components/common/Input";
+import PasswordInput from "@/components/common/PasswordInput";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
 import useArrowFormNav from "@/hooks/useArrowFormNav";
 
@@ -128,8 +129,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
           className="mb-3"
           disabled={submitting}
         />
-        <Input
-          type="password"
+        <PasswordInput
           placeholder="PASSWORD"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
