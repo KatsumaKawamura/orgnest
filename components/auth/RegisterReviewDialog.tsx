@@ -76,7 +76,7 @@ export default function RegisterReviewDialog({
 
   const maskedPassword =
     values.password && values.password.length > 0
-      ? "*".repeat(values.password.length)
+      ? "•".repeat(values.password.length)
       : "None";
 
   return (
