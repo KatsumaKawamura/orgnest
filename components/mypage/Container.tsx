@@ -40,7 +40,6 @@ export default function Container({
         onEditAccount={() => setShowSettingsModal(true)}
         onLogout={handleLogout}
       />
-
       {/* タブ */}
       <div className="mb-4 flex space-x-4 border-b border-gray-300">
         {["team", "myschedule", "project"].map((tab) => (
@@ -61,20 +60,19 @@ export default function Container({
           </button>
         ))}
       </div>
-
       {activeTab === "myschedule" && <div>MySchedule Content（復元予定）</div>}
       {activeTab === "team" && <div>Team Content（復元予定）</div>}
       {activeTab === "project" && <div>Project List Content（復元予定）</div>}
-
+      // components/mypage/Container.tsx（抜粋）
       {showSettingsModal && (
         <AccountSettingsModal
           title="アカウント設定"
+          initialUserId={user.user_id}
+          initialLoginId={user.login_id}
           initialName={user.user_name || ""}
           initialEmail={user.contact || ""}
           onClose={() => setShowSettingsModal(false)}
-          onUpdated={(newData) =>
-            setUser((prev: any) => ({ ...prev, ...newData }))
-          }
+          onUpdated={(patch) => setUser((prev: any) => ({ ...prev, ...patch }))}
         />
       )}
     </main>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import Button from "@/components/common/Button";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
+import { useFadeModal } from "@/components/common/FadeModalWrapper";
 
 interface ConfirmDialogProps {
   title?: string;
@@ -11,7 +12,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
-  /** FadeModalWrapper(asChild) の子として使う場合は true（推奨） */
+  /** FadeModalWrapper(asChild) の子として使う前提（true固定推奨） */
   asModalChild?: boolean;
 }
 
@@ -24,6 +25,9 @@ export default function ConfirmDialog({
   onCancel,
   asModalChild = true,
 }: ConfirmDialogProps) {
+  // asChild前提：フェード閉じを必ず経由
+  const { close } = useFadeModal();
+
   const panelRef = useRef<HTMLDivElement | null>(null);
   const cancelRef = useRef<HTMLButtonElement | null>(null);
   const okRef = useRef<HTMLButtonElement | null>(null);
@@ -63,6 +67,8 @@ export default function ConfirmDialog({
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
+        // 先にフェード閉じ → フェード完了後 onClose でアンマウント
+        close();
         onCancel();
         return;
       }
@@ -102,7 +108,7 @@ export default function ConfirmDialog({
 
     document.addEventListener("keydown", handler, true);
     return () => document.removeEventListener("keydown", handler, true);
-  }, [focusBackToActions, onCancel]);
+  }, [focusBackToActions, close, onCancel]);
 
   const onActionRowKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft") {
@@ -120,6 +126,7 @@ export default function ConfirmDialog({
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
+      close();
       onCancel();
       return;
     }
@@ -163,7 +170,10 @@ export default function ConfirmDialog({
           <Button
             ref={cancelRef}
             variant="secondary"
-            onClick={onCancel}
+            onClick={() => {
+              close();
+              onCancel();
+            }}
             onFocus={rememberLastAction("cancel")}
             data-action="cancel"
             data-enter-ignore
@@ -175,7 +185,10 @@ export default function ConfirmDialog({
           <Button
             ref={okRef}
             variant="primary"
-            onClick={onConfirm}
+            onClick={() => {
+              close();
+              onConfirm();
+            }}
             onFocus={rememberLastAction("ok")}
             data-action="primary"
             data-enter
@@ -187,15 +200,7 @@ export default function ConfirmDialog({
     </div>
   );
 
-  if (asModalChild) return Panel;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-      role="dialog"
-      aria-modal="true"
-    >
-      {Panel}
-    </div>
-  );
+  // 非 asChild の簡易描画は廃止推奨（必要なら別コンポーネントで）
+  if (!asModalChild) return Panel;
+  return Panel;
 }

@@ -1,4 +1,3 @@
-// components/auth/RegisterModal.tsx
 "use client";
 
 import { useState } from "react";
@@ -52,9 +51,10 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
   // キャンセル押下 → 確認を出す（いきなり閉じない）
   const handleCancel = () => setShowDiscardConfirm(true);
 
-  // 確認：OK（破棄して閉じる）
+  // 確認：OK（破棄して親モーダルを閉じる＝外側の close）
   const handleDiscardConfirm = () => {
-    setShowDiscardConfirm(false);
+    // ここではネスト内の確認ダイアログは自分で close() 済み（ConfirmDialog側修正）
+    // 親モーダル（登録フォーム本体）を閉じる
     close();
     onClose?.();
   };
@@ -125,14 +125,15 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     setShowPreReview(true);
   };
 
-  // Review: 登録する
+  // Review: 登録する（※ここで show を直接落とさない）
   const handlePreReviewConfirm = async () => {
-    setShowPreReview(false);
     await handleRegister();
   };
 
-  // Review: 戻る
-  const handlePreReviewCancel = () => setShowPreReview(false);
+  // Review: 戻る（※ここで show を直接落とさない）
+  const handlePreReviewCancel = () => {
+    // noop: 子が close() → onClose で setShowPreReview(false)
+  };
 
   return (
     <>
@@ -180,11 +181,11 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
               contact: "CONTACT",
               userName: "USER_NAME",
             }}
-            maskPassword={true} // 既定: 伏字表示
+            maskPassword={true}
             cancelLabel="戻る"
             confirmLabel="登録する"
-            onCancel={handlePreReviewCancel}
-            onConfirm={handlePreReviewConfirm}
+            onCancel={handlePreReviewCancel} // ← 子が close()、ここでは状態操作しない
+            onConfirm={handlePreReviewConfirm} // ← 子が close()、ここでは状態操作しない
           />
         </FadeModalWrapper>
       )}
@@ -218,7 +219,9 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
           <InfoModal
             title={info.title}
             message={info.message}
-            onConfirm={() => setInfo(null)}
+            onConfirm={() => {
+              /* InfoModalがclose()するので空でOK */
+            }}
           />
         </FadeModalWrapper>
       )}
@@ -237,8 +240,10 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
             message="入力を破棄しますか？"
             cancelLabel="キャンセル"
             confirmLabel="OK"
-            onCancel={() => setShowDiscardConfirm(false)}
-            onConfirm={handleDiscardConfirm}
+            onCancel={() => {
+              /* 子がclose() → onCloseでOFF */
+            }}
+            onConfirm={handleDiscardConfirm} // 子がclose() → その後、親モーダルclose()
           />
         </FadeModalWrapper>
       )}

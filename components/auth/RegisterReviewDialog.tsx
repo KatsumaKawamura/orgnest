@@ -1,10 +1,10 @@
-// @/components/auth/RegisterReviewDialog.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import Button from "@/components/common/Button";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
+import { useFadeModal } from "@/components/common/FadeModalWrapper";
 
 type Values = {
   userId: string;
@@ -48,6 +48,8 @@ export default function RegisterReviewDialog({
   labelWidth = "8rem",
   fieldWidth = "20rem",
 }: Props) {
+  const { close } = useFadeModal();
+
   const actionRowRef = useRef<HTMLDivElement | null>(null);
   const [showPassword, setShowPassword] = useState(!maskPassword);
 
@@ -205,7 +207,10 @@ export default function RegisterReviewDialog({
         <Button
           variant="secondary"
           size="md"
-          onClick={onCancel}
+          onClick={() => {
+            close();
+            onCancel();
+          }}
           data-action="cancel"
           data-enter-ignore
           type="button"
@@ -215,7 +220,10 @@ export default function RegisterReviewDialog({
         <Button
           variant="primary"
           size="md"
-          onClick={onConfirm}
+          onClick={() => {
+            close();
+            onConfirm();
+          }}
           data-action="primary"
           data-enter
           type="button"

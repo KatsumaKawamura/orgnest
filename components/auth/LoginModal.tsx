@@ -1,3 +1,4 @@
+// components/auth/LoginModal.tsx
 "use client";
 import { useState } from "react";
 // Pages Router
@@ -82,6 +83,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
       if (elapsed < MIN_PROGRESS_MS) await sleep(MIN_PROGRESS_MS - elapsed);
 
       if (!res.ok) {
+        // 失敗：プログレスを閉じ、エラーInfoを開く
         setShowProgress(false);
         setInfo({
           title: "ログイン失敗",
@@ -172,7 +174,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
       {/* 成功時 Progress（asChild で中身が“パネル本体”に） */}
       {showProgress && (
         <FadeModalWrapper
-          onClose={() => setShowProgress(false)}
+          onClose={() => setShowProgress(false)} // ← フェード完了後にだけアンマウント
           closeOnBackdrop={false}
           closeOnEsc={false}
           asChild
@@ -191,14 +193,15 @@ export default function LoginModal({ onClose }: LoginModalProps) {
       {/* エラー通知 Info（asChild） */}
       {info && (
         <FadeModalWrapper
-          onClose={() => setInfo(null)}
+          onClose={() => setInfo(null)} // ← フェード完了後にだけアンマウント
           durationOpen={450}
+          durationClose={700} // ← 閉じフェードを長めに
           asChild
         >
           <InfoModal
             title={info.title}
             message={info.message}
-            onConfirm={() => setInfo(null)}
+            onConfirm={() => {}} // ← ここで setInfo(null) しない（close() は子側で呼ばれる）
           />
         </FadeModalWrapper>
       )}
