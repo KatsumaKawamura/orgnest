@@ -1,6 +1,5 @@
-// components/auth/RegisterFormCard.tsx
 "use client";
-import { Ref } from "react";
+import { Ref, PropsWithChildren } from "react";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import FieldHint from "@/components/common/FieldHint";
@@ -23,7 +22,6 @@ type Props = {
     contact?: string;
     userName?: string;
   };
-  /** ★新APIのみ */
   availability: Availability; // { userId?: "unknown" | "available" | "taken" }
   checking: Checking; // { userId: boolean }
   submitting: boolean;
@@ -42,6 +40,38 @@ type Props = {
   onRootKeyDown: (e: React.KeyboardEvent | KeyboardEvent) => void;
 };
 
+/** 「入力してください」を赤にしない（句点/末尾空白を無視） */
+const isPlainInputRequest = (msg?: string) => {
+  if (!msg) return false;
+  const normalized = msg.trim().replace(/[。\.]\s*$/, "");
+  return normalized === "入力してください";
+};
+/** 共通：通常エラーメッセージ→赤/「入力してください」→neutral */
+const stateFromError = (msg?: string) =>
+  msg ? (isPlainInputRequest(msg) ? "neutral" : "error") : "neutral";
+
+/** ラベル + 入力 + ヒント をまとめる薄いラッパー */
+function FormRow({
+  label,
+  hintMessage,
+  hintState = "neutral",
+  className,
+  children,
+}: PropsWithChildren<{
+  label: string;
+  hintMessage?: string;
+  hintState?: "neutral" | "ok" | "waiting" | "error";
+  className?: string;
+}>) {
+  return (
+    <div className={className}>
+      <label className="text-gray-800 block text-sm mb-1">{label}</label>
+      {children}
+      <FieldHint message={hintMessage} state={hintState} />
+    </div>
+  );
+}
+
 export default function RegisterFormCard({
   values,
   errors,
@@ -57,16 +87,34 @@ export default function RegisterFormCard({
 }: Props) {
   const { userId, password, confirmPassword, contact, userName } = values;
 
-  // ↑/↓：常に奪って移動・外から↑=最上/↓=最下・フォーカス時は末尾にキャレット
   const { formRef, onKeyDown: onFormKeyDown } = useArrowFormNav({
     loop: true,
     pullIn: true,
     caretOnFocus: "end",
   });
 
-  // ★ 旧API互換の正規化は削除。新型のみを参照。
   const availabilityStatus = availability.userId ?? "unknown";
   const isChecking = !!checking.userId;
+
+  // USER_ID のヒント（メッセージ & 色）
+  const userIdHintMsg = isChecking
+    ? "ユーザーIDを確認中…"
+    : errors.userId ??
+      (availabilityStatus === "taken"
+        ? "このUSER_IDは使用できません"
+        : availabilityStatus === "available"
+        ? "使用可能です"
+        : undefined);
+
+  const userIdHintState = isChecking
+    ? "neutral" // 確認中は neutral（灰）
+    : errors.userId
+    ? stateFromError(errors.userId) // 入力してください=neutral/その他=赤
+    : availabilityStatus === "available"
+    ? "ok" // 緑
+    : availabilityStatus === "taken"
+    ? "error" // 赤
+    : "neutral";
 
   return (
     <div
@@ -82,100 +130,102 @@ export default function RegisterFormCard({
       </h2>
 
       {/* USER_ID */}
-      <label className="text-gray-800 block text-sm mb-1">・USER_ID</label>
-      <Input
-        type="text"
-        placeholder="USER_ID（ログインに使用）"
-        value={userId}
-        onChange={(e) => onChange.setUserId(e.target.value)}
-        className="mb-1"
-        disabled={submitting}
-        aria-invalid={!!errors.userId}
-      />
-      <FieldHint
-        message={
-          isChecking
-            ? "ユーザーIDを確認中…"
-            : errors.userId ||
-              (availabilityStatus === "taken"
-                ? "このUSER_IDは使用できません"
-                : undefined)
-        }
-        state={
-          isChecking
-            ? "waiting"
-            : errors.userId
-            ? "neutral"
-            : availabilityStatus === "available"
-            ? "ok"
-            : "neutral"
-        }
-      />
+      <FormRow
+        label="・USER_ID"
+        hintMessage={userIdHintMsg}
+        hintState={userIdHintState}
+      >
+        <Input
+          type="text"
+          placeholder="USER_ID（ログインに使用）"
+          value={userId}
+          onChange={(e) => onChange.setUserId(e.target.value)}
+          className="mb-1"
+          disabled={submitting}
+          aria-invalid={!!errors.userId}
+        />
+      </FormRow>
 
       {/* PASSWORD */}
-      <label className="text-gray-800 block text-sm mb-1">・PASSWORD</label>
-      <PasswordInput
-        placeholder="PASSWORD"
-        value={password}
-        onChange={(e) => onChange.setPassword(e.target.value)}
-        className="mb-1"
-        disabled={submitting}
-        aria-invalid={!!errors.password}
-        autoComplete="new-password"
-      />
-      <FieldHint message={errors.password} state="neutral" />
+      <FormRow
+        className="mt-4"
+        label="・PASSWORD"
+        hintMessage={errors.password}
+        hintState={stateFromError(errors.password)}
+      >
+        <PasswordInput
+          placeholder="PASSWORD"
+          value={password}
+          onChange={(e) => onChange.setPassword(e.target.value)}
+          className="mb-1"
+          disabled={submitting}
+          aria-invalid={!!errors.password}
+          autoComplete="new-password"
+        />
+      </FormRow>
 
       {/* CONFIRM PASSWORD */}
-      <PasswordInput
-        placeholder="PASSWORD（確認）"
-        value={confirmPassword}
-        onChange={(e) => onChange.setConfirmPassword(e.target.value)}
-        className="mb-1"
-        disabled={submitting}
-        aria-invalid={!!errors.confirmPassword}
-        autoComplete="new-password"
-      />
-      <FieldHint message={errors.confirmPassword} state="neutral" />
+      <FormRow
+        label="・PASSWORD（確認）"
+        hintMessage={errors.confirmPassword}
+        hintState={stateFromError(errors.confirmPassword)}
+      >
+        <PasswordInput
+          placeholder="PASSWORD（確認）"
+          value={confirmPassword}
+          onChange={(e) => onChange.setConfirmPassword(e.target.value)}
+          className="mb-1"
+          disabled={submitting}
+          aria-invalid={!!errors.confirmPassword}
+          autoComplete="new-password"
+        />
+      </FormRow>
 
       {/* CONTACT */}
-      <label className="text-gray-800 block text-sm mb-1">・CONTACT</label>
-      <Input
-        type="text"
-        placeholder="E-MAIL（PASS再設定用）"
-        value={contact}
-        onChange={(e) => onChange.setContact(e.target.value)}
-        className="mb-1"
-        disabled={submitting}
-      />
-      <FieldHint
-        message={errors.contact ?? "任意入力です。ログイン後に再設定できます。"}
-        state="neutral"
-      />
+      <FormRow
+        className="mt-4"
+        label="・CONTACT"
+        hintMessage={
+          errors.contact ?? "任意入力です。ログイン後に再設定できます。"
+        }
+        hintState={stateFromError(errors.contact)}
+      >
+        <Input
+          type="text"
+          placeholder="E-MAIL（PASS再設定用）"
+          value={contact}
+          onChange={(e) => onChange.setContact(e.target.value)}
+          className="mb-1"
+          disabled={submitting}
+        />
+      </FormRow>
 
       {/* USER_NAME */}
-      <label className="text-gray-800 block text-sm mb-1">・USER_NAME</label>
-      <Input
-        type="text"
-        placeholder="USER_NAME（アプリ内での表示名）"
-        value={userName}
-        onChange={(e) => onChange.setUserName(e.target.value)}
-        className="mb-1"
-        disabled={submitting}
-        aria-invalid={!!errors.userName}
-      />
-      <FieldHint
-        message={
+      <FormRow
+        className="mt-4"
+        label="・USER_NAME"
+        hintMessage={
           errors.userName ?? "任意入力です。ログイン後に再設定できます。"
         }
-        state="neutral"
-      />
+        hintState={stateFromError(errors.userName)}
+      >
+        <Input
+          type="text"
+          placeholder="USER_NAME（アプリ内での表示名）"
+          value={userName}
+          onChange={(e) => onChange.setUserName(e.target.value)}
+          className="mb-1"
+          disabled={submitting}
+          aria-invalid={!!errors.userName}
+        />
+      </FormRow>
 
-      {/* ボタン群 */}
+      {/* ボタン群（上マージンあり） */}
       <div
         ref={actionRowRef}
         role="group"
         aria-orientation="horizontal"
-        className="flex justify-between"
+        className="mt-4 flex justify-between"
       >
         <Button
           variant="secondary"

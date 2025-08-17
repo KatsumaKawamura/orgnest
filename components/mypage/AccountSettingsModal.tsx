@@ -168,7 +168,7 @@ export default function AccountSettingsModal({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mb-3"
-            placeholder="通知先メールアドレス"
+            placeholder="E-MAIL"
           />
 
           <label className="block text-sm font-medium mb-1">USER_NAME</label>

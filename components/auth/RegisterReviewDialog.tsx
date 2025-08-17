@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
-import { useFadeModal } from "@/components/common/FadeModalWrapper";
-import ReviewFieldRow from "@/components/auth/ReviewFieldRow";
+import { useMemo, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import ActionsRow from "@/components/common/ActionsRow";
 
 type Values = {
@@ -14,102 +13,103 @@ type Values = {
 
 type Labels = Partial<Record<keyof Values, string>>;
 
+type Row = {
+  key: "userId" | "password" | "contact" | "userName";
+  label: string;
+  value: string;
+  /** パスワード行のみ true にする（他は undefined のまま） */
+  canToggle?: boolean;
+};
+
 type Props = {
   title?: string;
   values: Values;
   labels?: Labels;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  onConfirm: () => void;
-  onCancel: () => void;
   maskPassword?: boolean;
-  className?: string;
-  panelClassName?: string;
-  labelWidth?: string;
-  fieldWidth?: string;
+  cancelLabel?: string;
+  confirmLabel?: string;
+  /** ActionsRow が close() → その後に呼ぶ（＝フェード後） */
+  onCancel: () => void;
+  onConfirm: () => void;
 };
 
 export default function RegisterReviewDialog({
   title = "入力内容の確認",
   values,
   labels,
-  confirmLabel = "登録する",
-  cancelLabel = "戻る",
-  onConfirm,
-  onCancel,
   maskPassword = true,
-  className,
-  panelClassName,
-  labelWidth = "8rem",
-  fieldWidth = "20rem",
+  cancelLabel = "戻る",
+  confirmLabel = "登録する",
+  onCancel,
+  onConfirm,
 }: Props) {
-  // ここでは close() を直接呼ばない（閉じるのは ActionsRow の責務）
-  useFadeModal();
+  const [showPassword, setShowPassword] = useState(!maskPassword);
 
-  const L = useMemo(
-    () => ({
+  const rows: Row[] = useMemo(() => {
+    const l = {
       userId: labels?.userId ?? "USER_ID",
       password: labels?.password ?? "PASSWORD",
       contact: labels?.contact ?? "CONTACT",
       userName: labels?.userName ?? "USER_NAME",
-    }),
-    [labels]
-  );
+    };
+    return [
+      { key: "userId", label: l.userId, value: values.userId },
+      {
+        key: "password",
+        label: l.password,
+        value: showPassword ? values.password : "••••••••",
+        canToggle: true,
+      },
+      {
+        key: "contact",
+        label: l.contact,
+        value: values.contact ?? "（未入力）",
+      },
+      {
+        key: "userName",
+        label: l.userName,
+        value: values.userName ?? "（未入力）",
+      },
+    ];
+  }, [values, labels, showPassword]);
 
   return (
-    <div
-      className={[
-        "w-[min(92vw,560px)] rounded-xl bg-white shadow-lg text-gray-800 p-6",
-        "mx-auto",
-        panelClassName,
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="review-title"
-    >
-      {/* 見出し */}
-      <h2 id="review-title" className="text-lg font-semibold mb-6 text-center">
+    <div className="rounded-xl bg-white shadow-xl p-6 w-[min(92vw,480px)] text-gray-900">
+      <h2 className="text-lg font-semibold mb-4 text-center" data-modal-title>
         {title}
       </h2>
 
-      {/* 各行 */}
-      <div className="space-y-4">
-        <ReviewFieldRow
-          label={L.userId}
-          value={values.userId}
-          labelWidth={labelWidth}
-          fieldWidth={fieldWidth}
-          ariaLabel={L.userId}
-        />
-        <ReviewFieldRow
-          label={L.password}
-          value={values.password}
-          maskable
-          defaultMasked={maskPassword}
-          labelWidth={labelWidth}
-          fieldWidth={fieldWidth}
-          ariaLabel={L.password}
-        />
-        <ReviewFieldRow
-          label={L.contact}
-          value={values.contact}
-          labelWidth={labelWidth}
-          fieldWidth={fieldWidth}
-          ariaLabel={L.contact}
-        />
-        <ReviewFieldRow
-          label={L.userName}
-          value={values.userName}
-          labelWidth={labelWidth}
-          fieldWidth={fieldWidth}
-          ariaLabel={L.userName}
-        />
+      <div className="space-y-3 text-sm">
+        {rows.map((r) => (
+          <div
+            key={r.key}
+            className="flex items-center justify-between gap-3 border-b pb-2"
+          >
+            <div className="text-gray-600 min-w-28">{r.label}</div>
+            <div className="flex-1 text-right break-all">
+              {r.value}
+              {r.canToggle && (
+                <button
+                  type="button"
+                  className="inline-flex items-center ml-2 text-gray-600 hover:text-gray-900"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={
+                    showPassword ? "パスワードを隠す" : "パスワードを表示"
+                  }
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* ボタン群（左右キー操作＋Enter/Esc 付き） */}
+      {/* フッター：close() → onCancel/onConfirm（＝フェードしてから消える） */}
       <ActionsRow
         className="mt-6"
         cancelLabel={cancelLabel}
