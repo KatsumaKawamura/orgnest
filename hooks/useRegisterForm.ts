@@ -2,18 +2,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  validateUserId,
-  validatePassword,
-  validateConfirmPassword,
-} from "@/lib/validators/auth";
-
-/** USER_IDの利用可否:
- *  - true  : 利用可（未登録）
- *  - false : 利用不可（重複あり）
- *  - null  : 未判定/判定不能
- */
-type Availability = boolean | null;
+import type {
+  Availability,
+  AvailabilityStatus,
+  Checking,
+} from "@/types/register";
 
 type FieldErrors = {
   userId?: string;
@@ -23,123 +16,160 @@ type FieldErrors = {
   userName?: string;
 };
 
-export function useRegisterForm() {
-  // --- 入力値 ---
+const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+export default function useRegisterForm() {
+  // 入力値
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [contact, setContact] = useState<string>("");
-  const [userName, setUserName] = useState<string>("");
+  const [contact, setContact] = useState("");
+  const [userName, setUserName] = useState("");
 
-  // --- USER_ID重複チェック ---
-  const [availability, setAvailability] = useState<Availability>(null);
-  const [checking, setChecking] = useState(false);
+  // availability / checking（正準型）
+  const [availabilityStatus, setAvailabilityStatus] =
+    useState<AvailabilityStatus>("unknown");
+  const [isCheckingUserId, setIsCheckingUserId] = useState(false);
 
-  // 直近問い合わせの識別（レース対策）
+  // ユーザーID重複チェックのデバウンス & 世代管理
+  const timerRef = useRef<number | null>(null);
   const seqRef = useRef(0);
 
-  // 入力バリデーション（形式チェック）
-  const fieldErrors: FieldErrors = useMemo(() => {
-    const errs: FieldErrors = {};
-
-    const msgId = validateUserId(userId.trim());
-    if (msgId) errs.userId = msgId;
-
-    const msgPw = validatePassword(password);
-    if (msgPw) errs.password = msgPw;
-
-    const msgConfirm = validateConfirmPassword(password, confirmPassword);
-    if (msgConfirm) errs.confirmPassword = msgConfirm;
-
-    return errs;
-  }, [userId, password, confirmPassword]);
-
-  // 「登録」ボタンをブロックすべきか（形式エラー or USER_ID重複 or 照会中）
-  const hasBlockingError = useMemo(() => {
-    if (
-      fieldErrors.userId ||
-      fieldErrors.password ||
-      fieldErrors.confirmPassword
-    )
-      return true;
-    if (availability === false) return true; // 重複
-    if (checking) return true;
-    return false;
-  }, [fieldErrors, availability, checking]);
-
-  // USER_IDの重複チェック（debounce）
   useEffect(() => {
-    const raw = userId.trim();
-
-    // 入力が空 or 形式不正のときは問い合わせしない
-    if (!raw || validateUserId(raw)) {
-      setAvailability(null);
-      setChecking(false);
+    // 入力が空なら確認不要
+    if (!userId.trim()) {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+      setIsCheckingUserId(false);
+      setAvailabilityStatus("unknown");
       return;
     }
 
-    setChecking(true);
-    setAvailability(null);
+    // デバウンス
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    const mySeq = ++seqRef.current;
+    setIsCheckingUserId(true);
 
-    const currentSeq = ++seqRef.current;
-    const handle = setTimeout(async () => {
+    timerRef.current = window.setTimeout(async () => {
       try {
-        const res = await fetch("/api/check-login-id", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ login_id: raw }),
-        });
-
-        if (seqRef.current !== currentSeq) return; // 古い応答は破棄
-
-        if (!res.ok) {
-          setAvailability(null);
-          setChecking(false);
-          return;
+        // まず POST を試す
+        let available: boolean | undefined;
+        try {
+          const res = await fetch("/api/check-login-id", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ login_id: userId }),
+            credentials: "same-origin",
+          });
+          if (res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (typeof data?.available === "boolean") {
+              available = data.available;
+            } else if (data?.status === "available") {
+              available = true;
+            } else if (data?.status === "taken") {
+              available = false;
+            }
+          }
+        } catch {
+          /* noop: POST 失敗時は GET にフォールバック */
         }
 
-        const json: { available?: boolean } = await res.json();
-        setAvailability(
-          json.available === true
-            ? true
-            : json.available === false
-            ? false
-            : null
-        );
-      } catch {
-        setAvailability(null);
-      } finally {
-        if (seqRef.current === currentSeq) setChecking(false);
-      }
-    }, 400);
+        // フォールバック: GET
+        if (available === undefined) {
+          try {
+            const res = await fetch(
+              `/api/check-login-id?login_id=${encodeURIComponent(userId)}`,
+              { credentials: "same-origin" }
+            );
+            if (res.ok) {
+              const data = await res.json().catch(() => ({}));
+              if (typeof data?.available === "boolean") {
+                available = data.available;
+              } else if (data?.status === "available") {
+                available = true;
+              } else if (data?.status === "taken") {
+                available = false;
+              }
+            }
+          } catch {
+            /* 最終的に undefined のままなら unknown */
+          }
+        }
 
-    return () => clearTimeout(handle);
+        if (seqRef.current !== mySeq) return; // 古い応答は破棄
+
+        setAvailabilityStatus(
+          available === true
+            ? "available"
+            : available === false
+            ? "taken"
+            : "unknown"
+        );
+      } finally {
+        if (seqRef.current === mySeq) setIsCheckingUserId(false);
+      }
+    }, 450);
+
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
   }, [userId]);
 
+  // バリデーション（文言は最低限・「入力してください。」を出す）
+  const fieldErrors: FieldErrors = useMemo(() => {
+    const e: FieldErrors = {};
+
+    if (!userId.trim()) e.userId = "入力してください。";
+
+    if (!password) e.password = "入力してください。";
+    else if (password.length < 8) e.password = "8文字以上で入力してください。";
+
+    if (!confirmPassword) e.confirmPassword = "入力してください。";
+    else if (confirmPassword !== password)
+      e.confirmPassword = "PASSWORDが一致しません。";
+
+    if (contact && !isEmail(contact))
+      e.contact = "メールアドレスの形式が正しくありません。";
+
+    // userName は任意入力（エラーなし）
+    return e;
+  }, [userId, password, confirmPassword, contact]);
+
+  const hasBlockingError = useMemo(
+    () =>
+      Boolean(
+        fieldErrors.userId ||
+          fieldErrors.password ||
+          fieldErrors.confirmPassword ||
+          fieldErrors.contact ||
+          fieldErrors.userName
+      ),
+    [fieldErrors]
+  );
+
+  // 返却（正準型）
+  const availability: Availability = { userId: availabilityStatus };
+  const checking: Checking = { userId: isCheckingUserId };
+
   return {
-    // 値
+    // 値とsetter
     userId,
     password,
     confirmPassword,
     contact,
     userName,
-
-    // セッター
     setUserId,
     setPassword,
     setConfirmPassword,
     setContact,
     setUserName,
 
-    // 可用性
-    availability, // true=利用可 / false=重複 / null=未判定
-    setAvailability, // 互換のために残す
-    checking,
-
-    // バリデーション表示用
+    // バリデーション関連
     fieldErrors,
     hasBlockingError,
+
+    // 正準型
+    availability,
+    checking,
   } as const;
 }
-
-export default useRegisterForm;

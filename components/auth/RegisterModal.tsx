@@ -1,7 +1,7 @@
 // components/auth/RegisterModal.tsx
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/router"; // Pages Router 継続
 import FadeModalWrapper, {
   useFadeModal,
@@ -11,7 +11,7 @@ import ProgressModal from "@/components/common/ProgressModal";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import RegisterFormCard from "@/components/auth/RegisterFormCard";
 import RegisterReviewDialog from "@/components/auth/RegisterReviewDialog";
-import { useRegisterFormV2 } from "@/hooks/useRegisterFormV2"; // ★V2ラッパーを使用
+import useRegisterForm from "@/hooks/useRegisterForm"; // ← ここが変更
 import { useProgressOverlay } from "@/hooks/useProgressOverlay";
 import useModalActionRoving from "@/hooks/useModalActionRoving";
 
@@ -23,14 +23,16 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
   const router = useRouter();
   const { close } = useFadeModal();
 
-  // 入力 + リアルタイム検証（正準型で受けられる）
-  const form = useRegisterFormV2();
+  // 入力 + リアルタイム検証（正準型で受ける）
+  const form = useRegisterForm();
 
   // 進捗オーバーレイ
   const { show, setShow, status, runWithMinDelay } = useProgressOverlay();
 
   // 事前レビュー表示
   const [showPreReview, setShowPreReview] = useState(false);
+  // レビュー確定後、フェード完了で登録開始するためのフラグ
+  const reviewConfirmPendingRef = useRef(false);
 
   // API 失敗などの通知用
   const [info, setInfo] = useState<{ title: string; message: string } | null>(
@@ -46,19 +48,16 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     overrideInput: true,
   });
 
-  // ★ キャンセル確認ダイアログの表示状態
+  // キャンセル確認
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const discardAndCloseParentRef = useRef(false);
 
-  // キャンセル押下 → 確認を出す（いきなり閉じない）
   const handleCancel = () => setShowDiscardConfirm(true);
-
-  // 確認：OK（破棄して親モーダルを閉じる＝外側の close）
   const handleDiscardConfirm = () => {
-    close();
-    onClose?.();
+    discardAndCloseParentRef.current = true;
   };
 
-  // 実際の登録処理（checking を新APIで判定）
+  // 実際の登録処理
   const handleRegister = async () => {
     if (submitting || form.hasBlockingError || form.checking.userId) return;
 
@@ -86,7 +85,6 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     if (!ok) {
       setInfo({ title: "登録失敗", message: (error as Error).message });
     }
-    // 成功時：Progress 側が "done" 表示 → OK で onConfirm が呼ばれる
   };
 
   // 登録完了 → OK：自動ログイン → 遷移（push→close）
@@ -118,20 +116,9 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
     }
   };
 
-  // 「登録」ボタン押下 → まずはレビュー表示
   const handleSubmitClick = () => {
     if (submitting || form.hasBlockingError || form.checking.userId) return;
     setShowPreReview(true);
-  };
-
-  // Review: 登録する
-  const handlePreReviewConfirm = async () => {
-    await handleRegister();
-  };
-
-  // Review: 戻る
-  const handlePreReviewCancel = () => {
-    // noop: 子が close() → onClose で setShowPreReview(false)
   };
 
   return (
@@ -167,7 +154,17 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
 
       {/* 入力内容の確認（asChild） */}
       {showPreReview && (
-        <FadeModalWrapper onClose={() => setShowPreReview(false)} asChild>
+        <FadeModalWrapper
+          onClose={() => {
+            // 子レビューのフェード完了
+            setShowPreReview(false);
+            if (reviewConfirmPendingRef.current) {
+              reviewConfirmPendingRef.current = false;
+              handleRegister(); // 完全クローズ後に開始
+            }
+          }}
+          asChild
+        >
           <RegisterReviewDialog
             title="入力内容の確認"
             values={{
@@ -185,8 +182,13 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
             maskPassword={true}
             cancelLabel="戻る"
             confirmLabel="登録する"
-            onCancel={handlePreReviewCancel}
-            onConfirm={handlePreReviewConfirm}
+            onCancel={() => {
+              /* 子が close() → onClose で setShowPreReview(false) */
+            }}
+            onConfirm={() => {
+              // フェード完了で実行
+              reviewConfirmPendingRef.current = true;
+            }}
           />
         </FadeModalWrapper>
       )}
@@ -230,7 +232,14 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
       {/* キャンセル確認（asChild） */}
       {showDiscardConfirm && (
         <FadeModalWrapper
-          onClose={() => setShowDiscardConfirm(false)}
+          onClose={() => {
+            setShowDiscardConfirm(false);
+            if (discardAndCloseParentRef.current) {
+              discardAndCloseParentRef.current = false;
+              close();
+              onClose?.();
+            }
+          }}
           closeOnBackdrop={false}
           closeOnEsc={true}
           asChild
@@ -242,9 +251,12 @@ export default function RegisterModal({ onClose }: RegisterModalProps) {
             cancelLabel="キャンセル"
             confirmLabel="OK"
             onCancel={() => {
-              /* 子がclose() → onCloseでOFF */
+              /* 子が close() */
             }}
-            onConfirm={handleDiscardConfirm}
+            onConfirm={() => {
+              // 親は onClose で閉じる
+              discardAndCloseParentRef.current = true;
+            }}
           />
         </FadeModalWrapper>
       )}
