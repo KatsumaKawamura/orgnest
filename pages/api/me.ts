@@ -1,7 +1,6 @@
-// pages/api/me.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
-import jwt from "jsonwebtoken";
+import jwt, { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 import * as cookie from "cookie";
 
 const supabase = createClient(
@@ -26,38 +25,53 @@ export default async function handler(
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
 
-    // Cookieからトークンを取得
+    // Cookie からトークン取得
     const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
     const token = cookies.session;
-
     if (!token) {
       return res.status(401).json({ error: "認証情報がありません" });
     }
 
-    // トークン検証
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      user_id: string;
+    if (!process.env.JWT_SECRET) {
+      return res
+        .status(500)
+        .json({ error: "サーバ設定エラー: JWT_SECRET 未設定" });
+    }
+
+    // JWT 検証（標準の sub を主体IDとして利用）
+    const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
+      sub?: string;
+      login_id?: string;
+      iat?: number;
+      exp?: number;
+      [k: string]: unknown;
     };
 
-    if (!decoded || !decoded.user_id) {
-      return res.status(401).json({ error: "認証エラー" });
+    const userId = decoded?.sub;
+    if (!userId) {
+      return res.status(400).json({ error: "トークン形式エラー" });
     }
 
     // ユーザー情報取得
     const { data: user, error } = await supabase
       .from("users")
       .select("user_id, login_id, contact, user_name")
-      .eq("user_id", decoded.user_id)
+      .eq("user_id", userId)
       .single();
 
     if (error || !user) {
       return res.status(404).json({ error: "ユーザーが見つかりません" });
     }
 
-    // ユーザー情報をそのまま返却
     return res.status(200).json(user);
-  } catch (err) {
-    console.error("JWT Verify Error:", err);
-    return res.status(401).json({ error: "無効なトークン" });
+  } catch (err: any) {
+    if (err instanceof TokenExpiredError) {
+      return res.status(401).json({ error: "トークン期限切れ" });
+    }
+    if (err instanceof JsonWebTokenError) {
+      return res.status(401).json({ error: "無効なトークン" });
+    }
+    console.error("[me] unexpected:", err);
+    return res.status(401).json({ error: "認証エラー" });
   }
 }
