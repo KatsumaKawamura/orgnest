@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import AccountSettingsModal from "@/components/mypage/AccountSettingsModal";
+import FadeModalWrapper from "@/components/common/FadeModalWrapper";
+import SettingsModal from "@/components/account/SettingsModal";
 import Header from "@/components/mypage/Header";
 
 export default function Container({
@@ -9,7 +10,7 @@ export default function Container({
   initialSchedules,
 }: any) {
   const router = useRouter();
-  const [user, setUser] = useState(initialUser);
+  const [user] = useState(initialUser);
   const [activeTab, setActiveTab] = useState<"team" | "myschedule" | "project">(
     "myschedule"
   );
@@ -40,12 +41,15 @@ export default function Container({
         onEditAccount={() => setShowSettingsModal(true)}
         onLogout={handleLogout}
       />
+
       {/* タブ */}
       <div className="mb-4 flex space-x-4 border-b border-gray-300">
         {["team", "myschedule", "project"].map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab as any)}
+            onClick={() =>
+              setActiveTab(tab as "team" | "myschedule" | "project")
+            }
             className={`px-4 py-2 text-sm font-semibold ${
               activeTab === tab
                 ? "border-b-2 border-gray-800 text-gray-800"
@@ -60,16 +64,23 @@ export default function Container({
           </button>
         ))}
       </div>
+
       {activeTab === "myschedule" && <div>MySchedule Content（復元予定）</div>}
       {activeTab === "team" && <div>Team Content（復元予定）</div>}
       {activeTab === "project" && <div>Project List Content（復元予定）</div>}
-      // components/mypage/Container.tsx（抜粋）
+
+      {/* アカウント設定モーダル */}
       {showSettingsModal && (
-        <AccountSettingsModal
-          user={user} // ← 旧: 個別initial* propsは廃止
-          onClose={() => setShowSettingsModal(false)}
-          onUpdated={(patch) => setUser((prev: any) => ({ ...prev, ...patch }))}
-        />
+        <FadeModalWrapper onClose={() => setShowSettingsModal(false)} asChild>
+          <SettingsModal
+            initial={{
+              login_id: user.login_id ?? "",
+              user_name: user.user_name ?? "",
+              contact: user.contact ?? "",
+            }}
+            onClose={() => setShowSettingsModal(false)}
+          />
+        </FadeModalWrapper>
       )}
     </main>
   );
