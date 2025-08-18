@@ -122,7 +122,7 @@ export default function useRegisterForm() {
     if (!userId.trim()) e.userId = "入力してください。";
 
     if (!password) e.password = "入力してください。";
-    else if (password.length < 8) e.password = "8文字以上で入力してください。";
+    else if (password.length < 4) e.password = "4文字以上で入力してください。";
 
     if (!confirmPassword) e.confirmPassword = "入力してください。";
     else if (confirmPassword !== password)

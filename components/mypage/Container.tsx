@@ -66,11 +66,7 @@ export default function Container({
       // components/mypage/Container.tsx（抜粋）
       {showSettingsModal && (
         <AccountSettingsModal
-          title="アカウント設定"
-          initialUserId={user.user_id}
-          initialLoginId={user.login_id}
-          initialName={user.user_name || ""}
-          initialEmail={user.contact || ""}
+          user={user} // ← 旧: 個別initial* propsは廃止
           onClose={() => setShowSettingsModal(false)}
           onUpdated={(patch) => setUser((prev: any) => ({ ...prev, ...patch }))}
         />

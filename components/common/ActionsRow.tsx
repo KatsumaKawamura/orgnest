@@ -7,38 +7,32 @@ import { useFadeModal } from "@/components/common/FadeModalWrapper";
 
 /** 長期運用のための安定API（Confirm/Info/Progressで共通使用） */
 export type ActionsRowProps = {
-  /** ラベル */
   cancelLabel?: string;
   confirmLabel?: string;
 
-  /** ハンドラ */
   onCancel: () => void;
   onConfirm: () => void;
 
-  /** レイアウト */
-  align?: "center" | "between" | "end"; // 既定: center
+  align?: "center" | "between" | "end";
   className?: string;
-
-  /** キー操作方針 */
   horizontalOnly?: boolean;
 
-  /** 見た目（公式） */
   size?: "sm" | "md" | "lg";
   confirmVariant?: "primary" | "danger" | "neutral";
 
-  /** 必要最低限の上書き（公式） */
   confirmClassName?: string;
   cancelClassName?: string;
 
-  /** 単一ボタン運用（Info/Progress 用） */
-  showCancel?: boolean; // 既定: true
-  confirmDisabled?: boolean; // 既定: false
+  showCancel?: boolean;
+  confirmDisabled?: boolean;
 
   /** 実行順：true=onConfirm→close / false=close→onConfirm */
-  confirmFirst?: boolean; // 既定: false
+  confirmFirst?: boolean;
 
-  /** 互換: 旧 position を残置（非推奨） */
-  /** @deprecated 代わりに className/align を使用してください */
+  /** キャンセル時に親モーダルを閉じない（親側で確認ダイアログを出す用途） */
+  cancelDoesNotClose?: boolean;
+
+  /** @deprecated */
   position?: string;
 };
 
@@ -57,6 +51,7 @@ export default function ActionsRow({
   showCancel = true,
   confirmDisabled = false,
   confirmFirst = false,
+  cancelDoesNotClose = false,
   /** deprecated */ position,
 }: ActionsRowProps) {
   const { close } = useFadeModal();
@@ -90,7 +85,19 @@ export default function ActionsRow({
     [showCancel]
   );
 
-  // 外側からキー引き込み（←/→/Enter/Esc）
+  // 入力系要素かどうかを判定
+  const isEditableTarget = (el: HTMLElement | null) => {
+    if (!el) return false;
+    const tag = el.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
+    // contentEditable, role="textbox" にも配慮
+    if ((el as any).isContentEditable) return true;
+    const role = el.getAttribute("role");
+    if (role === "textbox" || role === "combobox") return true;
+    return false;
+  };
+
+  // 外側からキー引き込み（←/→/Enter/Esc のみ）
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const row = rowRef.current;
@@ -98,14 +105,17 @@ export default function ActionsRow({
       const tgt = e.target as HTMLElement | null;
       const inActions = !!(tgt && row.contains(tgt));
 
+      // 入力系にフォーカスがある間は一切介入しない
+      if (isEditableTarget(tgt)) return;
+
+      // ここからは文字キーは無視（以前の「e.key.length===1」は削除）
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
-        close();
+        if (!cancelDoesNotClose) close();
         onCancel();
         return;
       }
-
       if (!inActions) {
         if (e.key === "ArrowLeft") {
           e.preventDefault();
@@ -136,16 +146,20 @@ export default function ActionsRow({
           }
           return;
         }
-        if (e.key.length === 1) {
-          focusBack();
-          return;
-        }
       }
     };
 
     document.addEventListener("keydown", handler, true);
     return () => document.removeEventListener("keydown", handler, true);
-  }, [close, onCancel, focusBack, horizontalOnly, showCancel, confirmDisabled]);
+  }, [
+    close,
+    onCancel,
+    focusBack,
+    horizontalOnly,
+    showCancel,
+    confirmDisabled,
+    cancelDoesNotClose,
+  ]);
 
   const onRowKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft") {
@@ -163,7 +177,7 @@ export default function ActionsRow({
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
-      close();
+      if (!cancelDoesNotClose) close();
       onCancel();
       return;
     }
@@ -178,12 +192,7 @@ export default function ActionsRow({
       ? "justify-end"
       : "justify-center";
 
-  const wrapperClass = [
-    position, // @deprecated
-    "mt-6 flex gap-3",
-    alignClass,
-    className,
-  ]
+  const wrapperClass = [position, "mt-6 flex gap-3", alignClass, className]
     .filter(Boolean)
     .join(" ");
 
@@ -205,6 +214,11 @@ export default function ActionsRow({
     }
   };
 
+  const handleCancelClick = () => {
+    if (!cancelDoesNotClose) close();
+    onCancel();
+  };
+
   return (
     <div
       ref={(node) => {
@@ -222,10 +236,7 @@ export default function ActionsRow({
           ref={cancelRef}
           variant="secondary"
           size={size}
-          onClick={() => {
-            close();
-            onCancel();
-          }}
+          onClick={handleCancelClick}
           onFocus={() => (last.current = "cancel")}
           data-action="cancel"
           data-enter-ignore

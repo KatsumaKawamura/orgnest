@@ -1,234 +1,161 @@
-// components/mypage/AccountSettingsModal.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Input from "@/components/common/Input";
-import PasswordInput from "@/components/common/PasswordInput";
-import Button from "@/components/common/Button";
+import { useMemo, useRef, useState } from "react";
+import FadeModalWrapper from "@/components/common/FadeModalWrapper";
+import ConfirmDialog from "@/components/common/ConfirmDialog";
+import ProgressModal from "@/components/common/ProgressModal";
+import AccountSettingsFormCard, {
+  AccountSettingsFormState,
+  AccountSettingsDiff,
+} from "@/components/mypage/AccountSettingsFormCard";
+
+export type AccountUser = {
+  id: string;
+  login_id: string;
+  user_name?: string | null;
+  contact?: string | null;
+};
 
 type Props = {
-  title: string;
-  /** 既存ユーザー情報（user_id/login_id はどちらかが来る想定） */
-  initialUserId: string;
-  initialLoginId?: string | null;
-  initialName: string;
-  initialEmail: string;
+  user?: AccountUser | null;
   onClose: () => void;
-  /** 成功後に最新の user を親へ反映 */
-  onUpdated: (newData: {
-    user_id?: string;
-    login_id?: string;
-    user_name?: string;
-    contact?: string;
-  }) => void;
+  onUpdated: (diff: AccountSettingsDiff) => void;
 };
 
 export default function AccountSettingsModal({
-  title,
-  initialUserId,
-  initialLoginId,
-  initialName,
-  initialEmail,
+  user,
   onClose,
   onUpdated,
 }: Props) {
-  // USER_ID は login_id を優先（なければ user_id）
-  const initialUserIdDisplay = useMemo(
-    () =>
-      initialLoginId && initialLoginId.length > 0
-        ? initialLoginId
-        : initialUserId,
-    [initialLoginId, initialUserId]
+  const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
+  const [progress, setProgress] = useState<"idle" | "processing" | "done">(
+    "idle"
   );
 
-  const [userId, setUserId] = useState(initialUserIdDisplay);
-  const [name, setName] = useState(initialName);
-  const [email, setEmail] = useState(initialEmail);
+  const formRef = useRef<AccountSettingsFormState | null>(null);
+  const [formState, setFormState] = useState<AccountSettingsFormState | null>(
+    null
+  );
 
-  const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
+  const initial = useMemo(
+    () => ({
+      login_id: user?.login_id ?? "",
+      user_name: user?.user_name ?? "",
+      contact: user?.contact ?? "",
+    }),
+    [user?.login_id, user?.user_name, user?.contact]
+  );
 
-  const [loading, setLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const canSave = !!formState?.canSave;
+  const diff = formState?.diff ?? {};
+  const hasChanges = !!formState?.hasChanges;
 
-  // 簡易バリデーション
-  const userIdChanged = userId.trim() !== initialUserIdDisplay;
-  const nameChanged = name !== initialName;
-  const emailChanged = email !== initialEmail;
-  const passwordChanged = password.length > 0;
-
-  const hasAnyChange =
-    userIdChanged || nameChanged || emailChanged || passwordChanged;
-
-  const passwordError =
-    passwordChanged && password !== passwordConfirm
-      ? "PASSWORD（確認）が一致していません"
-      : null;
-
-  // 送信
-  const handleSave = async () => {
-    setErrorMessage(null);
-
-    if (!hasAnyChange) {
+  const requestCancel = () => {
+    if (!hasChanges) {
       onClose();
       return;
     }
-    if (passwordError) return;
+    setShowConfirmDiscard(true);
+  };
 
-    setLoading(true);
+  const handleSave = async () => {
+    if (!canSave) return;
+    setProgress("processing");
     try {
-      // 変更点だけ送る
-      const payload: any = {};
-      if (userIdChanged) {
-        // サーバー実装に合わせて、login_id または user_id どちらで扱うか決めてください
-        // ここでは login_id として送る運用を推奨（認証IDの意味合いに近い）
-        payload.login_id = userId.trim();
-      }
-      if (nameChanged) payload.user_name = name;
-      if (emailChanged) payload.contact = email;
-      if (passwordChanged) payload.password = password;
-
       const res = await fetch("/api/user/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(diff),
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMessage(data.error || "更新に失敗しました");
-      } else {
-        // 親へ変更点だけ伝える
-        onUpdated(payload);
-        setShowSuccess(true);
-      }
+      if (!res.ok) throw new Error("Failed to update");
+      setProgress("done");
     } catch {
-      setErrorMessage("通信エラーが発生しました");
-    } finally {
-      setLoading(false);
+      setProgress("idle");
+      alert("更新に失敗しました。時間を置いて再度お試しください。");
     }
   };
 
-  const handleCloseAll = () => {
-    setShowSuccess(false);
-    setErrorMessage(null);
+  const handleProgressOk = () => {
+    if (progress !== "done") return;
+    onUpdated(diff);
     onClose();
   };
 
-  // Esc で閉じる（任意）
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleCloseAll();
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
+  const headerDesc = user
+    ? "USER_ID・パスワード・氏名・連絡先を編集します"
+    : "ユーザー情報を取得しています…";
 
   return (
-    <>
-      {/* メイン：編集モーダル */}
-      <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-        <div className="bg-white p-6 rounded shadow-lg w-[min(92vw,28rem)] text-gray-800">
-          <h2 className="text-lg font-semibold mb-4">{title}</h2>
+    <FadeModalWrapper onClose={onClose} closeOnBackdrop={false} role="dialog">
+      <div className="w-[min(92vw,720px)] max-w-[720px] bg-white text-gray-900 rounded-xl shadow-xl flex flex-col">
+        {/* Header（線なし） */}
+        <div className="px-6 pt-6 pb-4">
+          <h2 className="text-lg font-semibold text-center" data-modal-title>
+            ユーザー情報の変更
+          </h2>
+          <p className="sr-only" data-modal-desc>
+            {headerDesc}
+          </p>
+        </div>
 
-          <label className="block text-sm font-medium mb-1">USER_ID</label>
-          <Input
-            type="text"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            className="mb-3"
-            placeholder="USER_ID"
+        {/* Body（フォーム内に ActionsRow を含む） */}
+        <div className="px-6 pb-6">
+          <AccountSettingsFormCard
+            initial={initial}
+            onStateChange={(s) => {
+              formRef.current = s;
+              setFormState(s);
+            }}
+            onCancel={requestCancel}
+            onSubmit={handleSave}
+            submitting={progress === "processing"}
           />
-
-          <label className="block text-sm font-medium mb-1">
-            PASSWORD（変更する場合のみ）
-          </label>
-          <PasswordInput
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mb-2"
-            placeholder="NEW_PASSWORD"
-            autoComplete="new-password"
-          />
-          <PasswordInput
-            value={passwordConfirm}
-            onChange={(e) => setPasswordConfirm(e.target.value)}
-            className="mb-3"
-            placeholder="NEW_PASSWORD（確認）"
-            autoComplete="new-password"
-          />
-          {passwordError && (
-            <p className="text-xs text-red-600 mb-2">{passwordError}</p>
+          {!user && (
+            <p className="mt-3 text-xs text-gray-500">
+              ユーザー情報の読み込み中です。読み込み後に現在値が反映されます。
+            </p>
           )}
-
-          <label className="block text-sm font-medium mb-1">CONTACT</label>
-          <Input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mb-3"
-            placeholder="E-MAIL"
-          />
-
-          <label className="block text-sm font-medium mb-1">USER_NAME</label>
-          <Input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="mb-5"
-            placeholder="アプリ内の表示名"
-          />
-
-          <div className="flex justify-end space-x-2">
-            <Button variant="secondary" size="md" onClick={handleCloseAll}>
-              キャンセル
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={handleSave}
-              disabled={loading || !!passwordError || !hasAnyChange}
-            >
-              {loading ? "保存中..." : "保存"}
-            </Button>
-          </div>
         </div>
       </div>
 
-      {/* 保存完了モーダル */}
-      {showSuccess && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-80 text-center">
-            <h2 className="text-lg font-semibold">保存完了</h2>
-            <p className="text-gray-700 my-6">アカウント情報を更新しました。</p>
-            <div className="flex justify-center">
-              <Button variant="primary" size="md" onClick={handleCloseAll}>
-                OK
-              </Button>
-            </div>
-          </div>
-        </div>
+      {/* 破棄確認（asChild） */}
+      {showConfirmDiscard && (
+        <FadeModalWrapper
+          onClose={() => setShowConfirmDiscard(false)}
+          asChild
+          enterSubmits={true}
+        >
+          <ConfirmDialog
+            title="編集内容を破棄しますか？"
+            message="保存されていない変更は失われます。"
+            onCancel={() => setShowConfirmDiscard(false)}
+            onConfirm={() => {
+              setShowConfirmDiscard(false);
+              onClose();
+            }}
+            actions={{ align: "center" }}
+          />
+        </FadeModalWrapper>
       )}
 
-      {/* エラーモーダル */}
-      {errorMessage && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-80 text-center">
-            <h2 className="text-lg font-semibold text-red-600 mb-2">エラー</h2>
-            <p className="text-gray-700 mb-6">{errorMessage}</p>
-            <div className="flex justify-center">
-              <Button
-                variant="primary"
-                size="md"
-                onClick={() => setErrorMessage(null)}
-              >
-                OK
-              </Button>
-            </div>
-          </div>
-        </div>
+      {/* 進捗（asChild） */}
+      {progress !== "idle" && (
+        <FadeModalWrapper
+          onClose={() => setProgress("idle")}
+          asChild
+          enterSubmits={true}
+        >
+          <ProgressModal
+            title="アカウント更新"
+            status={progress === "processing" ? "processing" : "done"}
+            processingText="保存中……"
+            doneText="更新が完了しました"
+            confirmLabel="OK"
+            onConfirm={handleProgressOk}
+            actions={{ align: "center" }}
+          />
+        </FadeModalWrapper>
       )}
-    </>
+    </FadeModalWrapper>
   );
 }

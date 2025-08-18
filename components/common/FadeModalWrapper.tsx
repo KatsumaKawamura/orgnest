@@ -62,7 +62,7 @@ export default function FadeModalWrapper({
   easingClose = "ease",
   closeOnBackdrop = false,
   closeOnEsc = true,
-  enterSubmits = true,
+  enterSubmits = false,
   labelledBy,
   describedBy,
   role = "dialog",

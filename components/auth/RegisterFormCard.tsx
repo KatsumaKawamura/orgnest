@@ -1,10 +1,11 @@
 "use client";
+
 import { Ref, PropsWithChildren } from "react";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
 import FieldHint from "@/components/common/FieldHint";
-import useArrowFormNav from "@/hooks/useArrowFormNav";
 import PasswordInput from "@/components/common/PasswordInput";
+import useFormNavWithActions from "@/hooks/useFormNavWithActions";
 import type { Availability, Checking } from "@/types/register";
 
 type Props = {
@@ -36,8 +37,10 @@ type Props = {
   onSubmit: () => void;
   submitDisabled: boolean;
 
-  actionRowRef: Ref<HTMLDivElement>;
-  onRootKeyDown: (e: React.KeyboardEvent | KeyboardEvent) => void;
+  /** 互換維持のため受け取るが、内部フックで完結するため必須ではない */
+  actionRowRef?: Ref<HTMLDivElement>;
+  /** ←/→ 等の親側ロジックがあれば併用できるよう受け取る */
+  onRootKeyDown?: (e: React.KeyboardEvent | KeyboardEvent) => void;
 };
 
 /** 「入力してください」を赤にしない（句点/末尾空白を無視） */
@@ -50,7 +53,12 @@ const isPlainInputRequest = (msg?: string) => {
 const stateFromError = (msg?: string) =>
   msg ? (isPlainInputRequest(msg) ? "neutral" : "error") : "neutral";
 
-/** ラベル + 入力 + ヒント をまとめる薄いラッパー */
+/**
+ * ヒント行の高さを常に確保するため、FieldHint を min-height 付きの
+ * コンテナでラップ。未表示時は不可視プレースホルダーで1行分を保持。
+ * - 想定文字サイズ: text-xs（約1.25rem行高）
+ * - 実ヒントが2行以上なら自動で高さ拡張
+ */
 function FormRow({
   label,
   hintMessage,
@@ -67,7 +75,18 @@ function FormRow({
     <div className={className}>
       <label className="text-gray-800 block text-sm mb-1">{label}</label>
       {children}
-      <FieldHint message={hintMessage} state={hintState} />
+      <div
+        className="mt-1 min-h-[1.25rem]"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {hintMessage ? (
+          <FieldHint message={hintMessage} state={hintState} />
+        ) : (
+          /* text-xs と同じ行高を不可視で確保 */
+          <span className="invisible block text-xs">&nbsp;</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -82,21 +101,33 @@ export default function RegisterFormCard({
   onCancel,
   onSubmit,
   submitDisabled,
-  actionRowRef,
+  actionRowRef: externalActionRowRef,
   onRootKeyDown,
 }: Props) {
   const { userId, password, confirmPassword, contact, userName } = values;
 
-  const { formRef, onKeyDown: onFormKeyDown } = useArrowFormNav({
-    loop: true,
-    pullIn: true,
-    caretOnFocus: "end",
-  });
+  // 共通フック：↑/↓ロービング + ActionsRow 引き込み
+  const { getRootProps, actionRowRef, onKeyDown } = useFormNavWithActions();
+
+  // 互換：外から actionRowRef をもらっていればマージ（片方しか来ない前提でもOK）
+  const mergeActionRowRef = (node: HTMLDivElement | null) => {
+    // 内部
+    // @ts-ignore
+    actionRowRef.current = node;
+    // 外部（コールバック or RefObject 両対応）
+    if (typeof externalActionRowRef === "function") {
+      externalActionRowRef(node);
+    } else if (
+      externalActionRowRef &&
+      "current" in (externalActionRowRef as any)
+    ) {
+      (externalActionRowRef as any).current = node;
+    }
+  };
 
   const availabilityStatus = availability.userId ?? "unknown";
   const isChecking = !!checking.userId;
 
-  // USER_ID のヒント（メッセージ & 色）
   const userIdHintMsg = isChecking
     ? "ユーザーIDを確認中…"
     : errors.userId ??
@@ -107,22 +138,25 @@ export default function RegisterFormCard({
         : undefined);
 
   const userIdHintState = isChecking
-    ? "neutral" // 確認中は neutral（灰）
+    ? "neutral"
     : errors.userId
-    ? stateFromError(errors.userId) // 入力してください=neutral/その他=赤
+    ? stateFromError(errors.userId)
     : availabilityStatus === "available"
-    ? "ok" // 緑
+    ? "ok"
     : availabilityStatus === "taken"
-    ? "error" // 赤
+    ? "error"
     : "neutral";
+
+  // getRootProps から受けた onKeyDown に、親からの onRootKeyDown を“後段”で併用
+  const { ref: rootRef, onKeyDown: rootOnKeyDown } = getRootProps();
 
   return (
     <div
-      ref={formRef}
+      ref={rootRef}
       className="bg-white text-gray-800 p-6 rounded shadow-lg w-[min(92vw,420px)]"
       onKeyDown={(e) => {
-        onFormKeyDown(e); // ↑/↓
-        onRootKeyDown(e); // ←/→
+        rootOnKeyDown(e);
+        onRootKeyDown?.(e);
       }}
     >
       <h2 className="text-lg font-semibold mb-4" data-modal-title>
@@ -166,7 +200,7 @@ export default function RegisterFormCard({
 
       {/* CONFIRM PASSWORD */}
       <FormRow
-        label="・PASSWORD（確認）"
+        label=""
         hintMessage={errors.confirmPassword}
         hintState={stateFromError(errors.confirmPassword)}
       >
@@ -220,9 +254,9 @@ export default function RegisterFormCard({
         />
       </FormRow>
 
-      {/* ボタン群（上マージンあり） */}
+      {/* ボタン群 */}
       <div
-        ref={actionRowRef}
+        ref={mergeActionRowRef}
         role="group"
         aria-orientation="horizontal"
         className="mt-4 flex justify-between"
