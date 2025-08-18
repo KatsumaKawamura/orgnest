@@ -23,16 +23,21 @@ export default function Header({
 }: HeaderProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // 外クリックで閉じる
+  // 外クリックで閉じる（シンプル）
   useEffect(() => {
     const handler = (e: MouseEvent) => {
+      if (!showDropdown) return;
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [setShowDropdown]);
+  }, [showDropdown, setShowDropdown]);
+
+  const handleGearClick = () => {
+    setShowDropdown(!showDropdown); // シンプルなトグル
+  };
 
   return (
     <div className="mb-2 text-lg font-semibold text-gray-800 flex items-center justify-between">
@@ -40,18 +45,21 @@ export default function Header({
       <div className="relative" ref={menuRef}>
         <div className="flex items-center space-x-2">
           <span className="text-base">{userName}</span>
-          <Button
-            variant="icon"
-            size="sm"
-            onClick={() => setShowDropdown(!showDropdown)}
-          >
+          <Button variant="icon" size="sm" onClick={handleGearClick}>
             <Settings className="w-5 h-5" />
           </Button>
         </div>
+
         {showDropdown && (
           <AccountMenuDropdown
-            onEditAccount={onEditAccount}
-            onLogout={onLogout}
+            onEditAccount={() => {
+              setShowDropdown(false);
+              onEditAccount();
+            }}
+            onLogout={() => {
+              setShowDropdown(false);
+              onLogout();
+            }}
             onClose={() => setShowDropdown(false)}
           />
         )}

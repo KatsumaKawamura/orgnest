@@ -1,7 +1,15 @@
 // @/components/common/FadeModalWrapper.tsx
 "use client";
 import type React from "react";
-import { ReactNode, createContext, useContext, useRef } from "react";
+import {
+  ReactNode,
+  createContext,
+  useContext,
+  useRef,
+  useEffect,
+  isValidElement,
+  cloneElement,
+} from "react";
 import { createPortal } from "react-dom";
 
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -50,14 +58,17 @@ interface FadeModalWrapperProps {
 
   // asChild
   asChild?: boolean;
+
+  // ★ 追加：表示方法（"modal"=従来, "inline"=オーバーレイ無しでその場フェード）
+  variant?: "modal" | "inline";
 }
 
 export default function FadeModalWrapper({
   children,
   onClose,
   openDelay = 20,
-  durationOpen = 500,
-  durationClose = 700,
+  durationOpen = 1000,
+  durationClose = 1500,
   easingOpen = "ease",
   easingClose = "ease",
   closeOnBackdrop = false,
@@ -67,30 +78,72 @@ export default function FadeModalWrapper({
   describedBy,
   role = "dialog",
   asChild = false,
+  variant = "modal",
 }: FadeModalWrapperProps) {
-  // body直下に生える overlay（＝このモーダルの“ルート”）
+  // 可視状態 + requestClose（遅延クローズ）
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
-  // 開閉可視状態 + requestClose（遅延クローズ）
   const { visible, requestClose } = useModalVisibility({
     openDelay,
     durationClose,
     onClose,
   });
 
+  // 共通のトランジション
+  const transitionStyle: React.CSSProperties = {
+    transitionProperty: "opacity, transform",
+    transitionDuration: `${visible ? durationOpen : durationClose}ms`,
+    transitionTimingFunction: visible ? easingOpen : easingClose,
+    opacity: visible ? 1 : 0,
+  };
+
+  // ★ inline 変種：オーバーレイ・ポータル・フォーカス制御なしで、その場フェード
+  if (variant === "inline") {
+    // Esc で閉じるだけ有効化（必要なければ closeOnEsc=false に）
+    useEffect(() => {
+      if (!closeOnEsc) return;
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Escape") requestClose();
+      };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    }, [closeOnEsc, requestClose]);
+
+    const node =
+      asChild && isValidElement(children) ? (
+        cloneElement(children as any, {
+          // `contents` でレイアウト影響ゼロ、子の絶対配置も維持
+          // ラッパーが必要ないため、styleを子自身に付与
+          style: { ...(children as any).props?.style, ...transitionStyle },
+        })
+      ) : (
+        <div className="contents" style={transitionStyle}>
+          {children}
+        </div>
+      );
+
+    return (
+      <FadeModalContext.Provider value={{ close: requestClose }}>
+        {node}
+      </FadeModalContext.Provider>
+    );
+  }
+
+  // ===== ここから従来の "modal" 変種 =====
+
   // 初期フォーカス & 復帰、Tab トラップ、背面スクロールロック
   useModalFocus(visible, panelRef);
   useFocusTrap(panelRef, visible);
   useScrollLock();
 
-  // 共通：最前面以外を inert（見た目だけの overlayRef をスタック登録）
+  // inert スタック
   useInertStack(overlayRef, visible);
 
-  // 既存の backdrop/data-attr 管理（必要なら維持）
+  // backdrop/data-attr
   useModalBackdrop(visible);
 
-  // ARIA 自動配線（data-modal-title / data-modal-desc を拾う）
+  // ARIA 自動配線
   useAriaAutolink(panelRef, { labelledBy, describedBy, enabled: visible });
 
   // キーイベント（Esc / Enter / Arrow）
@@ -102,11 +155,6 @@ export default function FadeModalWrapper({
     enterSubmits,
     requestClose,
   });
-
-  const transitionStyle: React.CSSProperties = {
-    transitionDuration: `${visible ? durationOpen : durationClose}ms`,
-    transitionTimingFunction: visible ? easingOpen : easingClose,
-  };
 
   const modalNode = (
     <FadeModalContext.Provider value={{ close: requestClose }}>

@@ -1,3 +1,5 @@
+// @/components/mypage/Container.tsx
+
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -35,7 +37,7 @@ export default function Container({
     <main className="p-6 bg-[#ece9e5] min-h-screen">
       <Header
         dateLabel={formattedDateWithBrackets}
-        userName={user.user_name || user.user_id}
+        userName={user.user_name || user.login_id}
         showDropdown={showDropdown}
         setShowDropdown={setShowDropdown}
         onEditAccount={() => setShowSettingsModal(true)}

@@ -1,3 +1,5 @@
+// @/components/account/SettingsModal.tsx
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -89,7 +91,6 @@ export default function SettingsModal({
   const handleCancel = () => {
     if (!form.dirty) {
       close();
-      onClose?.();
     } else {
       setShowDiscardConfirm(true);
     }

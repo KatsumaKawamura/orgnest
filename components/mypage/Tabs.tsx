@@ -1,3 +1,4 @@
+// @/components/mypage/Tabs.tsx
 "use client";
 
 export default function Tabs({
