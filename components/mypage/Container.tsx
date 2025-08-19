@@ -1,11 +1,11 @@
 // @/components/mypage/Container.tsx
-
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import FadeModalWrapper from "@/components/common/FadeModalWrapper";
 import SettingsModal from "@/components/account/SettingsModal";
 import Header from "@/components/mypage/Header";
+import Tabs, { TabKey } from "@/components/mypage/Tabs"; // ★ 追加
 
 export default function Container({
   user: initialUser,
@@ -13,9 +13,7 @@ export default function Container({
 }: any) {
   const router = useRouter();
   const [user] = useState(initialUser);
-  const [activeTab, setActiveTab] = useState<"team" | "myschedule" | "project">(
-    "myschedule"
-  );
+  const [activeTab, setActiveTab] = useState<TabKey>("myschedule"); // ★ 型をTabsに合わせる
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -44,28 +42,8 @@ export default function Container({
         onLogout={handleLogout}
       />
 
-      {/* タブ */}
-      <div className="mb-4 flex space-x-4 border-b border-gray-300">
-        {["team", "myschedule", "project"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() =>
-              setActiveTab(tab as "team" | "myschedule" | "project")
-            }
-            className={`px-4 py-2 text-sm font-semibold ${
-              activeTab === tab
-                ? "border-b-2 border-gray-800 text-gray-800"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {tab === "team"
-              ? "Team"
-              : tab === "myschedule"
-              ? "My Schedule"
-              : "Project List"}
-          </button>
-        ))}
-      </div>
+      {/* ★ タブ: 直書き→コンポーネント化（下線がぬるっと移動） */}
+      <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
       {activeTab === "myschedule" && <div>MySchedule Content（復元予定）</div>}
       {activeTab === "team" && <div>Team Content（復元予定）</div>}
