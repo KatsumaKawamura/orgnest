@@ -1,5 +1,4 @@
 // @/components/account/SettingsModal.tsx
-
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -20,13 +19,16 @@ export type Me = {
 
 export interface SettingsModalProps {
   onClose: () => void;
-  /** Containerから受け取れる現在ユーザー。あれば /api/me をスキップ */
+  /** 親から受け取れる現在ユーザー。あれば /api/me をスキップ */
   initial?: Me;
+  /** 更新完了時に親へ最新を返す（SSOT更新用） */
+  onUpdated?: (u: Me) => void;
 }
 
 export default function SettingsModal({
   onClose,
   initial,
+  onUpdated,
 }: SettingsModalProps) {
   const { close } = useFadeModal();
 
@@ -41,9 +43,9 @@ export default function SettingsModal({
   const [loading, setLoading] = useState(!initial);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // initial がない場合のみ /api/me を取得（未ログイン等ならここで認証エラー）
+  // initial がない場合のみ /api/me
   useEffect(() => {
-    if (initial) return; // 既にあるのでフェッチ不要
+    if (initial) return;
     let alive = true;
     (async () => {
       try {
@@ -74,6 +76,8 @@ export default function SettingsModal({
   const [info, setInfo] = useState<{ title: string; message: string } | null>(
     null
   );
+  // 成功時の更新後ユーザーを InfoModal 終了まで保持
+  const updatedRef = useRef<Me | null>(null);
 
   // 連打防止
   const [submitting, setSubmitting] = useState(false);
@@ -119,8 +123,37 @@ export default function SettingsModal({
         credentials: "same-origin",
         body: JSON.stringify(body),
       });
+
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || "更新に失敗しました");
+      if (!res.ok) {
+        // ステータス別にわかりやすいメッセージ
+        if (res.status === 409 || data?.error === "LOGIN_ID_TAKEN") {
+          throw new Error("このUSER_IDは使用できません");
+        }
+        if (res.status === 400 && data?.error === "LOGIN_ID_INVALID") {
+          throw new Error(
+            "USER_IDの形式が不正です（小文字英字と _ のみ / 1〜32文字）"
+          );
+        }
+        if (res.status === 400 && data?.error === "PASSWORD_TOO_SHORT") {
+          throw new Error("PASSWORDが短すぎます");
+        }
+        throw new Error(data?.error || "更新に失敗しました");
+      }
+
+      // A案：APIから返ってきた更新後ユーザーを採用
+      const updated: Me | undefined = data?.user
+        ? {
+            login_id: data.user.login_id ?? "",
+            user_name: data.user.user_name ?? "",
+            contact: data.user.contact ?? "",
+          }
+        : undefined;
+
+      if (updated) {
+        updatedRef.current = updated; // InfoModal を閉じるタイミングで親へ渡す
+        setMe(updated); // モーダル内も即時更新（将来拡張に備える）
+      }
 
       setInfo({ title: "更新完了", message: "アカウント情報を更新しました。" });
     } catch (e: any) {
@@ -144,12 +177,10 @@ export default function SettingsModal({
   }
   if (loadError) {
     return (
-      <>
-        <div className="bg-white text-gray-800 p-6 rounded shadow-lg w-[min(92vw,420px)]">
-          <h2 className="text-lg font-semibold mb-2">アカウント設定</h2>
-          <p className="text-sm text-red-600">{loadError}</p>
-        </div>
-      </>
+      <div className="bg-white text-gray-800 p-6 rounded shadow-lg w-[min(92vw,420px)]">
+        <h2 className="text-lg font-semibold mb-2">アカウント設定</h2>
+        <p className="text-sm text-red-600">{loadError}</p>
+      </div>
     );
   }
 
@@ -185,8 +216,14 @@ export default function SettingsModal({
       {info && (
         <FadeModalWrapper
           onClose={() => {
+            const success = info.title === "更新完了";
             setInfo(null);
-            if (info.title === "更新完了") {
+            if (success) {
+              // 親SSOT更新
+              if (updatedRef.current && onUpdated) {
+                onUpdated(updatedRef.current);
+              }
+              updatedRef.current = null;
               close();
               onClose?.();
             }

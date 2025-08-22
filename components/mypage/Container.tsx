@@ -1,19 +1,23 @@
 // @/components/mypage/Container.tsx
 "use client";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import FadeModalWrapper from "@/components/common/FadeModalWrapper";
 import SettingsModal from "@/components/account/SettingsModal";
 import Header from "@/components/mypage/Header";
-import Tabs, { TabKey } from "@/components/mypage/Tabs"; // ★ 追加
+import Tabs, { TabKey } from "@/components/mypage/Tabs";
 
 export default function Container({
   user: initialUser,
   initialSchedules,
 }: any) {
   const router = useRouter();
-  const [user] = useState(initialUser);
-  const [activeTab, setActiveTab] = useState<TabKey>("myschedule"); // ★ 型をTabsに合わせる
+
+  // ★ 親SSOT：user を state で保持（setUser あり）
+  const [user, setUser] = useState(initialUser);
+
+  const [activeTab, setActiveTab] = useState<TabKey>("myschedule");
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -42,14 +46,12 @@ export default function Container({
         onLogout={handleLogout}
       />
 
-      {/* ★ タブ: 直書き→コンポーネント化（下線がぬるっと移動） */}
       <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
-      {activeTab === "myschedule" && <div>MySchedule Content（復元予定）</div>}
-      {activeTab === "team" && <div>Team Content（復元予定）</div>}
-      {activeTab === "project" && <div>Project List Content（復元予定）</div>}
+      {activeTab === "myschedule" && <div>MySchedule Content（実装予定）</div>}
+      {activeTab === "team" && <div>Team Content（実装予定）</div>}
+      {activeTab === "project" && <div>Project List Content（実装予定）</div>}
 
-      {/* アカウント設定モーダル */}
       {showSettingsModal && (
         <FadeModalWrapper onClose={() => setShowSettingsModal(false)} asChild>
           <SettingsModal
@@ -58,6 +60,8 @@ export default function Container({
               user_name: user.user_name ?? "",
               contact: user.contact ?? "",
             }}
+            // ★ 成功時に親SSOT更新
+            onUpdated={(u) => setUser((prev: any) => ({ ...prev, ...u }))}
             onClose={() => setShowSettingsModal(false)}
           />
         </FadeModalWrapper>

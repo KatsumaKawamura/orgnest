@@ -1,12 +1,19 @@
+// @/pages/api/user/update.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 import jwt, { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 import * as cookie from "cookie";
+import bcrypt from "bcryptjs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
+
+// 小文字英字と _ のみ 1〜32 文字
+const LOGIN_ID_RE = /^[a-z_]{1,32}$/;
+// パスワード最小長（必要に応じて強化）
+const PASSWORD_MIN = 8;
 
 export default async function handler(
   req: NextApiRequest,
@@ -17,7 +24,7 @@ export default async function handler(
   }
 
   try {
-    // Cookie からトークン取得
+    // Cookie からセッショントークン取得
     const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
     const token = cookies.session;
     if (!token) return res.status(401).json({ error: "認証情報がありません" });
@@ -28,57 +35,114 @@ export default async function handler(
         .json({ error: "サーバ設定エラー: JWT_SECRET 未設定" });
     }
 
-    // JWT 検証（標準の sub を主体IDとして利用）
+    // JWT 検証（sub に user_id）
     const decoded = jwt.verify(token, process.env.JWT_SECRET) as {
       sub?: string;
-      login_id?: string;
-      iat?: number;
-      exp?: number;
       [k: string]: unknown;
     };
-
     const userId = decoded?.sub;
-    if (!userId) {
-      // 形式不一致（verifyは通ったが payload が期待と違う）
-      return res.status(400).json({ error: "トークン形式エラー" });
-    }
+    if (!userId) return res.status(400).json({ error: "トークン形式エラー" });
 
-    const { user_name, contact, login_id, password } = req.body ?? {};
+    const { login_id, password, user_name, contact } = req.body ?? {};
 
-    // 何も変更がない場合
+    // 何も変更が無い
     if (
-      typeof user_name === "undefined" &&
-      typeof contact === "undefined" &&
       typeof login_id === "undefined" &&
-      typeof password === "undefined"
+      typeof password === "undefined" &&
+      typeof user_name === "undefined" &&
+      typeof contact === "undefined"
     ) {
       return res.status(400).json({ error: "更新する項目がありません" });
     }
 
-    // 更新内容の組み立て（今回は user_name / contact のみ保存対象）
+    // 既存の自分の値を取得（login_id重複チェックのため）
+    const { data: current, error: curErr } = await supabase
+      .from("users")
+      .select("user_id, login_id")
+      .eq("user_id", userId)
+      .single();
+
+    if (curErr || !current) {
+      return res.status(401).json({ error: "認証エラー" });
+    }
+
+    // バリデーション & 可用性確認
+    if (typeof login_id !== "undefined") {
+      if (!LOGIN_ID_RE.test(String(login_id))) {
+        return res
+          .status(400)
+          .json({
+            error: "LOGIN_ID_INVALID",
+            message: "login_idの形式が不正です",
+          });
+      }
+      // 変更がある場合のみ重複チェック
+      if (String(login_id) !== String(current.login_id)) {
+        const { data: dup, error: dupErr } = await supabase
+          .from("users")
+          .select("user_id")
+          .eq("login_id", String(login_id))
+          .limit(1);
+
+        if (dupErr) {
+          return res.status(500).json({ error: "重複チェックに失敗しました" });
+        }
+        if (dup && dup.length > 0) {
+          // 自分以外の誰かが同じlogin_id
+          if (dup[0].user_id !== userId) {
+            return res.status(409).json({ error: "LOGIN_ID_TAKEN" });
+          }
+        }
+      }
+    }
+
+    let passwordHash: string | undefined = undefined;
+    if (typeof password !== "undefined") {
+      const raw = String(password);
+      if (raw.length < PASSWORD_MIN) {
+        return res
+          .status(400)
+          .json({
+            error: "PASSWORD_TOO_SHORT",
+            message: "passwordが短すぎます",
+          });
+      }
+      passwordHash = await bcrypt.hash(raw, 10);
+    }
+
+    // UPDATE パッチ
     const patch: Record<string, unknown> = {};
+    if (typeof login_id !== "undefined") patch.login_id = String(login_id);
     if (typeof user_name !== "undefined") patch.user_name = user_name ?? null;
     if (typeof contact !== "undefined") patch.contact = contact ?? null;
-
-    // login_id / password の取り扱いは別途ポリシーに沿って実装（今回は保存しない）
-    // ※ 将来ここで login_id の更新を許可する場合は、フロントと同じ正規表現/長さの検証を必ず入れること
+    if (typeof passwordHash !== "undefined") patch.pass = passwordHash; // 生パスは保存しない
 
     if (Object.keys(patch).length === 0) {
       return res.status(400).json({ error: "更新対象の項目がありません" });
     }
 
-    const { error } = await supabase
+    const { error: updateError } = await supabase
       .from("users")
       .update(patch)
       .eq("user_id", userId);
 
-    if (error) {
+    if (updateError) {
       return res.status(500).json({ error: "更新に失敗しました" });
     }
 
-    return res.status(200).json({ message: "更新しました" });
+    // 更新後ユーザーを返す（passwordは返さない）
+    const { data: me, error: fetchError } = await supabase
+      .from("users")
+      .select("login_id, user_name, contact")
+      .eq("user_id", userId)
+      .single();
+
+    if (fetchError || !me) {
+      return res.status(500).json({ error: "更新後の取得に失敗しました" });
+    }
+
+    return res.status(200).json({ user: me });
   } catch (err: any) {
-    // verify 例外の内訳を出し分け（デバッグしやすく）
     if (err instanceof TokenExpiredError) {
       return res.status(401).json({ error: "トークン期限切れ" });
     }

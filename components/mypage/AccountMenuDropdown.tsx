@@ -45,7 +45,7 @@ export default function AccountMenuDropdown({
       </button>
 
       <button
-        className="w-full text-left px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+        className="w-full text-left px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors"
         ref={onLogoutRef ?? undefined}
         onClick={() => {
           onClose(); // 先に Dropdown を閉じる

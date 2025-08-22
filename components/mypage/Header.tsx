@@ -28,54 +28,94 @@ export default function Header({
   const [showConfirmPopover, setShowConfirmPopover] = useState(false);
   const logoutBtnRef = useRef<HTMLButtonElement | null>(null);
 
+  // Popover開くまでの遅延を管理する（rAF + setTimeout）
+  const openDelayRaf = useRef<number | null>(null);
+  const openDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearOpenDelays = () => {
+    if (openDelayRaf.current != null) {
+      cancelAnimationFrame(openDelayRaf.current);
+      openDelayRaf.current = null;
+    }
+    if (openDelayTimer.current != null) {
+      clearTimeout(openDelayTimer.current);
+      openDelayTimer.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      // アンマウント時にディレイを確実に解除
+      clearOpenDelays();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // 外クリック
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!menuRef.current) return;
-      if (menuRef.current.contains(e.target as Node)) return;
 
-      if (showConfirmPopover) {
-        // Popover 表示中の外クリックは「キャンセル扱い」：
-        // Popover を閉じて Dropdown を再オープン
-        setShowConfirmPopover(false);
-        setShowDropdown(true);
-        // 再描画後に Logout ボタンへフォーカス
-        setTimeout(() => logoutBtnRef.current?.focus(), 0);
-        return;
-      }
+      // --- メニュー領域外のクリック ---
+      if (!menuRef.current.contains(e.target as Node)) {
+        // 開く予定の遅延が残っていたらキャンセル（“パッ”と出るのを防ぐ）
+        clearOpenDelays();
 
-      if (showDropdown) {
-        setShowDropdown(false);
+        if (showConfirmPopover) {
+          // Popover 表示中の外クリックはキャンセル扱い
+          setShowConfirmPopover(false);
+          setShowDropdown(true);
+          setTimeout(() => logoutBtnRef.current?.focus(), 0);
+          return;
+        }
+        if (showDropdown) {
+          setShowDropdown(false);
+        }
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [showDropdown, showConfirmPopover, setShowDropdown]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDropdown, showConfirmPopover]);
 
   const handleGearClick = () => {
+    // Popoverが見えている時にギアを押した場合は Popover を閉じ、Dropdown の開閉をトグル
     if (showConfirmPopover) {
       setShowConfirmPopover(false);
-      // ↓ここを関数渡しではなく boolean に
+      clearOpenDelays();
       setShowDropdown(!showDropdown);
       return;
     }
     setShowDropdown(!showDropdown);
   };
 
+  // ▼ 重要：Dropdown を閉じてから “少し遅らせて” Popover を開く
   const handleRequestLogoutConfirm = () => {
-    // 予定どおり：Popover を前面に出すため、Dropdown は閉じる
+    // まず Dropdown を閉じる
     setShowDropdown(false);
-    setShowConfirmPopover(true);
+
+    // 既存の遅延をクリア（多重起動防止）
+    clearOpenDelays();
+
+    // 1フレーム待ってから短い遅延（120ms）で Popover を開く
+    openDelayRaf.current = requestAnimationFrame(() => {
+      openDelayRaf.current = null;
+      openDelayTimer.current = setTimeout(() => {
+        setShowConfirmPopover(true);
+        openDelayTimer.current = null;
+      }, 120);
+    });
   };
 
   const handleConfirmLogout = async () => {
+    clearOpenDelays();
     setShowConfirmPopover(false);
     setShowDropdown(false);
     onLogout(); // /api/logout → router.push("/")
   };
 
   const handleCancelLogout = () => {
-    // Popover を閉じ、Dropdown を再オープン → Logout ボタンへフォーカス返却
+    clearOpenDelays();
     setShowConfirmPopover(false);
     setShowDropdown(true);
     setTimeout(() => {
