@@ -21,6 +21,9 @@ export default function Container({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
 
+  // ★ 親SSOT: 選択中の日付
+  const [selectedDate, setSelectedDate] = useState(new Date());
+
   const today = new Date();
   const datePart = today.toLocaleDateString("ja-JP", {
     year: "numeric",
