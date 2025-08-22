@@ -228,7 +228,6 @@ export default function SettingsModal({
               onClose?.();
             }
           }}
-          durationOpen={650}
           asChild
         >
           <InfoModal

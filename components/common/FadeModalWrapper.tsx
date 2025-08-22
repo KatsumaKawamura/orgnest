@@ -68,7 +68,7 @@ export default function FadeModalWrapper({
   onClose,
   openDelay = 20,
   durationOpen = 150,
-  durationClose = 350,
+  durationClose = 150,
   easingOpen = "ease",
   easingClose = "ease",
   closeOnBackdrop = false,
