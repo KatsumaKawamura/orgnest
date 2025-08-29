@@ -4,6 +4,8 @@
 import { useEffect, useState } from "react";
 import SettingsFormCard from "@/components/account/SettingsFormCard";
 import { useAuthForm } from "@/hooks/forms/useAuthForm";
+import ProgressDialog from "@/components/common/modal/ProgressDialog";
+import Dialog from "@/components/common/modal/Dialog"; // ← 追加
 
 export type Me = {
   login_id: string;
@@ -17,7 +19,7 @@ export interface SettingsModalProps {
   onUpdated?: (me: Me) => void;
 }
 
-type Phase = "loading" | "form" | "saving" | "done" | "error";
+type Phase = "loading" | "form";
 
 export default function SettingsModal({
   onClose,
@@ -28,16 +30,10 @@ export default function SettingsModal({
   const [phase, setPhase] = useState<Phase>(initial ? "form" : "loading");
   const [generalError, setGeneralError] = useState<string | null>(null);
 
-  // Escで閉じる
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  // 変更ありキャンセル確認ダイアログ（Register と同じ発想）
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  // me を取得
+  // 初期値が無ければ /api/account/me から取得
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -50,8 +46,8 @@ export default function SettingsModal({
         });
         if (!mounted) return;
         if (!res.ok) {
-          setPhase("error");
           setGeneralError("ユーザー情報の取得に失敗しました");
+          setPhase("form");
           return;
         }
         const data = await res.json();
@@ -63,8 +59,8 @@ export default function SettingsModal({
         setPhase("form");
       } catch {
         if (!mounted) return;
-        setPhase("error");
         setGeneralError("ネットワークエラーが発生しました");
+        setPhase("form");
       }
     })();
     return () => {
@@ -72,14 +68,23 @@ export default function SettingsModal({
     };
   }, [initial]);
 
-  const vm = useAuthForm({
-    mode: "update",
-    initial: me ?? undefined,
-  });
+  const vm = useAuthForm({ mode: "update", initial: me ?? undefined });
+
+  // ProgressDialog（更新中/完了/エラー）
+  const [progressOpen, setProgressOpen] = useState(false);
+  const [progressStatus, setProgressStatus] = useState<
+    "processing" | "done" | "error"
+  >("processing");
+  const [progressMessage, setProgressMessage] = useState<string | undefined>(
+    undefined
+  );
 
   const handleSave = async () => {
     setGeneralError(null);
-    setPhase("saving");
+    setProgressOpen(true);
+    setProgressStatus("processing");
+    setProgressMessage("アカウント情報を更新しています…");
+
     try {
       const body: Record<string, unknown> = {};
       if (me && vm.values.userId !== me.login_id)
@@ -91,7 +96,9 @@ export default function SettingsModal({
         body.contact = vm.values.contact || null;
 
       if (Object.keys(body).length === 0) {
-        setPhase("form");
+        // 変更なし：Progress を閉じて即クローズ
+        setProgressOpen(false);
+        onClose();
         return;
       }
 
@@ -105,20 +112,18 @@ export default function SettingsModal({
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         const code = data?.error || "INTERNAL_ERROR";
-        if (code === "LOGIN_ID_TAKEN") {
+        if (code === "LOGIN_ID_TAKEN")
           setGeneralError("この USER_ID は既に使用されています");
-        } else if (code === "LOGIN_ID_INVALID") {
+        else if (code === "LOGIN_ID_INVALID")
           setGeneralError("USER_ID の形式が不正です");
-        } else if (code === "PASSWORD_TOO_SHORT") {
+        else if (code === "PASSWORD_TOO_SHORT")
           setGeneralError("PASSWORD が短すぎます");
-        } else if (code === "NO_CHANGES") {
-          setGeneralError("変更がありません");
-        } else if (code === "UNAUTHORIZED") {
-          setGeneralError("認証が必要です");
-        } else {
-          setGeneralError("更新に失敗しました");
-        }
-        setPhase("form");
+        else if (code === "NO_CHANGES") setGeneralError("変更がありません");
+        else if (code === "UNAUTHORIZED") setGeneralError("認証が必要です");
+        else setGeneralError("更新に失敗しました");
+
+        setProgressMessage("更新に失敗しました");
+        setProgressStatus("error");
         return;
       }
 
@@ -130,60 +135,76 @@ export default function SettingsModal({
       };
       setMe(updated);
       onUpdated?.(updated);
-      setPhase("done");
-      onClose();
+
+      setProgressMessage("更新が完了しました。");
+      setProgressStatus("done");
     } catch {
       setGeneralError("ネットワークエラーが発生しました");
-      setPhase("form");
+      setProgressMessage("ネットワークエラーが発生しました");
+      setProgressStatus("error");
     }
   };
 
+  // ← Register と同じ思想：変更がある場合だけ、キャンセルにクッション
+  const handleCancelFromForm = () => {
+    if (vm.dirty) setShowCancelConfirm(true);
+    else onClose();
+  };
+
   return (
-    <ModalShell onClose={onClose}>
+    <>
+      {/* Loading も Register と同じ白カードで統一 */}
       {phase === "loading" && (
         <div className="w-full max-w-md rounded-lg bg-white p-6 shadow">
           <p className="text-sm text-gray-700 text-center">読み込み中…</p>
         </div>
       )}
 
-      {(phase === "form" || phase === "saving" || phase === "error") && me && (
-        <SettingsFormCard
-          values={vm.values}
-          setters={vm.setters}
-          fieldErrors={vm.fieldErrors}
-          availability={vm.availability}
-          checking={vm.checking}
-          canSubmit={vm.canSubmit}
-          dirty={vm.dirty}
-          onCancel={onClose}
-          onSubmit={handleSave}
-          busy={phase === "saving"}
-          generalError={generalError}
-        />
+      {phase === "form" && me && (
+        <div className="w-full max-w-md rounded-lg bg-white p-6 shadow">
+          <SettingsFormCard
+            values={vm.values}
+            setters={vm.setters}
+            fieldErrors={vm.fieldErrors}
+            availability={vm.availability}
+            checking={vm.checking}
+            canSubmit={vm.canSubmit}
+            dirty={vm.dirty}
+            onCancel={handleCancelFromForm}
+            onSubmit={handleSave}
+            generalError={generalError}
+          />
+        </div>
       )}
-    </ModalShell>
-  );
-}
 
-function ModalShell({
-  onClose,
-  children,
-}: {
-  onClose: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
-      aria-modal
-      role="dialog"
-    >
-      <div
-        className="absolute inset-0 bg-black/40"
-        onClick={onClose}
-        aria-hidden
+      {/* ProgressDialog（更新中/完了/エラー） */}
+      <ProgressDialog
+        open={progressOpen}
+        status={progressStatus}
+        message={progressMessage}
+        onClose={() => setProgressOpen(false)} // error: 閉じる
+        onRetry={handleSave} // error: 再試行
+        onOk={() => {
+          setProgressOpen(false);
+          onClose();
+        }} // done: OKで閉じる
       />
-      <div className="relative z-[1001] w-full max-w-md">{children}</div>
-    </div>
+
+      {/* 変更破棄の確認ダイアログ（Register と同じ UX） */}
+      <Dialog
+        open={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        variant="confirm"
+        tone="default"
+        title="変更内容を破棄して閉じますか？"
+        message="フォームの変更内容は失われます。"
+        cancelLabel="戻る"
+        confirmLabel="閉じる"
+        onConfirm={() => {
+          setShowCancelConfirm(false);
+          onClose();
+        }}
+      />
+    </>
   );
 }

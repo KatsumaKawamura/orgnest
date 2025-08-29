@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import FadeModalWrapper from "@/components/common/FadeModalWrapper";
+import BaseModal from "@/components/common/modal/BaseModal";
 import SettingsModal from "@/components/account/SettingsModal";
 import Header from "@/components/mypage/Header";
 import Tabs, { TabKey } from "@/components/mypage/Tabs";
@@ -62,7 +62,14 @@ export default function Container({
       {activeTab === "project" && <ProjectListContainer />}
 
       {showSettingsModal && (
-        <FadeModalWrapper onClose={() => setShowSettingsModal(false)} asChild>
+        <BaseModal
+          open={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          backdropProps={{ className: "fixed inset-0 z-[1000] bg-black/50" }}
+          containerProps={{
+            className: "fixed inset-0 grid place-items-center p-4",
+          }}
+        >
           <SettingsModal
             initial={{
               login_id: user.login_id ?? "",
@@ -73,7 +80,7 @@ export default function Container({
             onUpdated={(u) => setUser((prev: any) => ({ ...prev, ...u }))}
             onClose={() => setShowSettingsModal(false)}
           />
-        </FadeModalWrapper>
+        </BaseModal>
       )}
     </main>
   );

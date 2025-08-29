@@ -41,7 +41,7 @@ export default function SimplePopover({
   confirmLoading = false,
 
   className = "",
-  initialFocus = "none", // ★ 追加：既定はOKにフォーカス
+  initialFocus = "none",
 }: SimplePopoverProps) {
   const [shouldRender, setShouldRender] = useState(open);
   const [isClosing, setIsClosing] = useState(false);
@@ -149,7 +149,7 @@ export default function SimplePopover({
       ref={rootRef}
       className={[
         "absolute right-0 mt-2", // 既定位置（必要に応じて className で上書き）
-        "z-[1000] w-[280px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg",
+        "z-[900] w-[280px] overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg",
         "origin-top-right will-change-transform will-change-opacity will-change-filter",
         isEntering
           ? "opacity-100 scale-100 translate-y-0"
@@ -158,7 +158,6 @@ export default function SimplePopover({
         className,
       ].join(" ")}
       role="dialog"
-      aria-modal="true"
       aria-label="確認"
     >
       <div className="px-4 py-3 text-center">
