@@ -1,0 +1,43 @@
+/* styles/popover-motion.css */
+
+/* 共通トークン（必要なら上書き可） */
+:root {
+  --popover-in-duration: 200ms;
+  --popover-out-duration: 180ms;
+  --popover-ease-in: ease-out;
+  --popover-ease-out: ease-in;
+}
+
+@keyframes popoverIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes popoverOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.95);
+  }
+}
+
+/* クラスで再利用 */
+.popover-in {
+  animation: popoverIn var(--popover-in-duration) var(--popover-ease-in) both;
+}
+.popover-out {
+  animation: popoverOut var(--popover-out-duration) var(--popover-ease-out) forwards;
+}
+
+.popover-will-change {
+  will-change: transform, opacity, filter;
+}

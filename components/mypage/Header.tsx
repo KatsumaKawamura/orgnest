@@ -111,7 +111,7 @@ export default function Header({
     clearOpenDelays();
     setShowConfirmPopover(false);
     setShowDropdown(false);
-    onLogout(); // /api/logout → router.push("/")
+    onLogout();
   };
 
   const handleCancelLogout = () => {

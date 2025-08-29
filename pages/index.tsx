@@ -1,10 +1,11 @@
-// pages/index.tsx
+// /pages/index.tsx
 "use client";
 
 import { useState } from "react";
 import LoginModal from "@/components/auth/LoginModal";
 import RegisterModal from "@/components/auth/RegisterModal";
-import FadeModalWrapper from "@/components/common/FadeModalWrapper";
+// import FadeModalWrapper from "@/components/common/FadeModalWrapper";
+import BaseModal from "@/components/common/modal/BaseModal";
 import Button from "@/components/common/Button";
 import { useRovingFocus } from "@/hooks/useRovingFocus";
 
@@ -55,17 +56,29 @@ export default function Home() {
         </div>
       </div>
 
-      {showLogin && (
-        <FadeModalWrapper onClose={() => setShowLogin(false)}>
-          <LoginModal onClose={() => setShowLogin(false)} />
-        </FadeModalWrapper>
-      )}
+      {/* Login */}
+      <BaseModal
+        open={showLogin}
+        onClose={() => setShowLogin(false)}
+        backdropProps={{ className: "fixed inset-0 z-[1000] bg-black/50" }}
+        containerProps={{
+          className: "fixed inset-0 grid place-items-center p-4",
+        }}
+      >
+        <LoginModal onClose={() => setShowLogin(false)} />
+      </BaseModal>
 
-      {showRegister && (
-        <FadeModalWrapper onClose={() => setShowRegister(false)}>
-          <RegisterModal onClose={() => setShowRegister(false)} />
-        </FadeModalWrapper>
-      )}
+      {/* Register */}
+      <BaseModal
+        open={showRegister}
+        onClose={() => setShowRegister(false)}
+        backdropProps={{ className: "fixed inset-0 z-[1000] bg-black/50" }}
+        containerProps={{
+          className: "fixed inset-0 grid place-items-center p-4",
+        }}
+      >
+        <RegisterModal onClose={() => setShowRegister(false)} />
+      </BaseModal>
     </div>
   );
 }

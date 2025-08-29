@@ -1,5 +1,7 @@
+// @/components/schedule/projectlist/ProjectListContent.tsx
 // @ts-nocheck
 "use client";
+
 import { useEffect } from "react";
 import ProjectListItem from "./ProjectListItem";
 import ProjectBulkActions from "./ProjectBulkActions";
@@ -31,23 +33,23 @@ export default function ProjectContent() {
     setEditValue,
     sortedProjects,
     startEdit,
-    confirmEdit, // ↁE追加
+    confirmEdit,
   } = useProjectList([]);
 
   // 初回読み込み
   useEffect(() => {
     (async () => {
       const data = await getProjects();
-      setProjects(data);
+      setProjects(data ?? []);
     })();
   }, [getProjects, setProjects]);
 
-  // 全選抁E解除
+  // 全選択/解除
   const selectAllOrClear = () => {
-    if (selectedProjects.length === sortedProjects.length) {
+    if ((selectedProjects?.length ?? 0) === (sortedProjects?.length ?? 0)) {
       setSelectedProjects([]);
     } else {
-      setSelectedProjects(sortedProjects.map((p) => p.id));
+      setSelectedProjects((sortedProjects ?? []).map((p) => p.id));
     }
   };
 
@@ -65,6 +67,14 @@ export default function ProjectContent() {
     setSelectedProjects([]);
     setDeleteMode(false);
     setShowConfirmBulk(false);
+  };
+
+  const handleAdd = async () => {
+    const name = newProject.trim();
+    if (!name) return;
+    const added = await addProject(name);
+    if (added) setProjects((prev) => [...prev, added]);
+    setNewProject("");
   };
 
   return (
@@ -89,29 +99,24 @@ export default function ProjectContent() {
           value={newProject}
           onChange={(e) => setNewProject(e.target.value)}
           onKeyDown={async (e) => {
-            if (e.key === "Enter") {
-              const added = await addProject(newProject.trim());
-              if (added) setProjects((prev) => [...prev, added]);
-              setNewProject("");
-            }
+            if (e.key === "Enter") await handleAdd();
           }}
           placeholder="New Project"
           className="flex-1 px-3 py-2 text-gray-800 bg-transparent border-b border-gray-400 focus:outline-none focus:border-gray-800"
         />
         <button
-          onClick={async () => {
-            const added = await addProject(newProject.trim());
-            if (added) setProjects((prev) => [...prev, added]);
-            setNewProject("");
-          }}
-          className="px-4 py-1 text-gray-800 hover:text-gray-600"
+          onClick={handleAdd}
+          className="px-4 py-1 text-gray-800 hover:text-gray-600 disabled:opacity-50"
+          disabled={!newProject.trim()}
+          aria-label="プロジェクトを追加"
+          title="追加"
         >
-          �E�E
+          ＋
         </button>
       </div>
 
-      {/* 全選抁E*/}
-      {deleteMode && sortedProjects.length > 0 && (
+      {/* 全選択 */}
+      {deleteMode && (sortedProjects?.length ?? 0) > 0 && (
         <div className="mb-2">
           <button
             onClick={selectAllOrClear}
@@ -119,17 +124,17 @@ export default function ProjectContent() {
           >
             {selectedProjects.length === sortedProjects.length
               ? "全て解除"
-              : "全て選抁E}
+              : "全て選択"}
           </button>
         </div>
       )}
 
-      {/* リスチE*/}
+      {/* リスト */}
       <ul className="space-y-2">
-        {sortedProjects.map((p) => (
+        {(sortedProjects ?? []).map((p) => (
           <ProjectListItem
             key={p.id}
-            id={p.id} // ↁEid を渡ぁE
+            id={p.id}
             name={p.name}
             deleteMode={deleteMode}
             selected={selectedProjects.includes(p.id)}
@@ -140,11 +145,10 @@ export default function ProjectContent() {
             onEditChange={(val) => setEditValue(val)}
             onEditConfirm={() =>
               confirmEdit(p.id, updateProject, deleteProject)
-            } // ↁEconfirmEdit を使用
+            }
           />
         ))}
       </ul>
     </div>
   );
 }
-

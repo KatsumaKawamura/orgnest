@@ -142,9 +142,9 @@ export default function ConfirmPopover({
       ref={rootRef}
       className={[
         anchorClassName,
-        "z-60 w-70 overflow-hidden rounded-lg border border-gray-200 bg-white",
-        "origin-top-right will-change-transform will-change-opacity",
-        isEntering ? "pop-enter" : "pop-leave",
+        "z-[1000] w-70 overflow-hidden rounded-lg border border-gray-200 bg-white",
+        "origin-top-right popover-will-change",
+        isEntering ? "popover-in" : "popover-out",
       ].join(" ")}
       role="dialog"
       aria-modal="true"
@@ -153,11 +153,7 @@ export default function ConfirmPopover({
       <div className="px-4 py-3 text-center">
         <p className="text-sm font-medium text-gray-800 mt-5 mb-6">{message}</p>
 
-        <div
-          className={[
-            "mt-3 flex items-center justify-center gap-2", // ← 中央寄せ
-          ].join(" ")}
-        >
+        <div className="mt-3 flex items-center justify-center gap-2">
           <Button
             variant={cancelVariant}
             size={buttonSize}
@@ -183,38 +179,6 @@ export default function ConfirmPopover({
           </Button>
         </div>
       </div>
-
-      <style jsx>{`
-        /* 入場：fade + translateY(8px→0) + scale(0.95→1) を 200ms ease-out（マウント時に必ず走る） */
-        .pop-enter {
-          animation: popInBasic 200ms ease-out both;
-        }
-        @keyframes popInBasic {
-          from {
-            opacity: 0;
-            transform: translateY(0.5rem) scale(0.95); /* = translate-y-2 & scale-95 */
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        /* 退場：逆方向にフェードアウト（必要なら keyframes でもOK） */
-        .pop-leave {
-          animation: popOutBasic 180ms ease-in forwards;
-        }
-        @keyframes popOutBasic {
-          from {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-          to {
-            opacity: 0;
-            transform: translateY(0.5rem) scale(0.95);
-          }
-        }
-      `}</style>
     </div>
   );
 }

@@ -37,13 +37,11 @@ export default async function handler(
 
     if (selErr) {
       if (isDev) console.error("[login] select error:", selErr);
-      return res
-        .status(500)
-        .json({
-          error: isDev
-            ? `DB error: ${selErr.message}`
-            : "ログイン処理でエラーが発生しました",
-        });
+      return res.status(500).json({
+        error: isDev
+          ? `DB error: ${selErr.message}`
+          : "ログイン処理でエラーが発生しました",
+      });
     }
 
     const user = rows?.[0];
@@ -99,13 +97,11 @@ export default async function handler(
     // 4) JWT 発行
     if (!process.env.JWT_SECRET) {
       if (isDev) console.error("[login] Missing JWT_SECRET");
-      return res
-        .status(500)
-        .json({
-          error: isDev
-            ? "Missing JWT_SECRET"
-            : "ログイン処理でエラーが発生しました",
-        });
+      return res.status(500).json({
+        error: isDev
+          ? "Missing JWT_SECRET"
+          : "ログイン処理でエラーが発生しました",
+      });
     }
 
     const token = jwt.sign(
@@ -128,12 +124,10 @@ export default async function handler(
     return res.status(200).json({ ok: true });
   } catch (e: any) {
     if (isDev) console.error("[login] unexpected error:", e);
-    return res
-      .status(500)
-      .json({
-        error: isDev
-          ? `Unexpected: ${e?.message}`
-          : "ログイン処理でエラーが発生しました",
-      });
+    return res.status(500).json({
+      error: isDev
+        ? `Unexpected: ${e?.message}`
+        : "ログイン処理でエラーが発生しました",
+    });
   }
 }

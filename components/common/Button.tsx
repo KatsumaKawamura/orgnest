@@ -1,4 +1,3 @@
-// @/components/common/Button.tsx
 "use client";
 
 import { forwardRef } from "react";
@@ -26,6 +25,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   },
   ref
 ) {
+  const isDisabled = Boolean(disabled || isLoading);
+
+  // ベース：disabled 時は明確に見せる（cursor/opacity/hover無効）
   const base =
     "rounded font-medium inline-flex items-center justify-center " +
     "transition-colors transition-shadow motion-reduce:transition-none " +
@@ -33,8 +35,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     "focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 " +
     "focus-visible:ring-2 focus-visible:ring-gray-900 focus-visible:ring-offset-2 " +
     "enabled:hover:ring-2 enabled:hover:ring-gray-900 enabled:hover:ring-offset-2 " +
-    "disabled:opacity-50 disabled:cursor-default";
+    "disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:ring-0 disabled:focus:ring-0";
 
+  // 有効時の見た目
   const variants = {
     primary:
       "bg-gray-800 text-white hover:bg-gray-700 border border-gray-800 ring-offset-white",
@@ -43,6 +46,16 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     danger:
       "bg-red-600 text-white hover:bg-red-700 border border-red-700 ring-offset-white",
     icon: "bg-transparent text-gray-800 hover:bg-gray-200 border border-transparent rounded-full ring-offset-white",
+  } as const;
+
+  // 無効時の見た目（より明確に）
+  const disabledVariants = {
+    primary:
+      "disabled:bg-gray-300 disabled:text-gray-600 disabled:border-gray-300",
+    secondary:
+      "disabled:bg-gray-100 disabled:text-gray-400 disabled:border-gray-200",
+    danger: "disabled:bg-red-300 disabled:text-white disabled:border-red-300",
+    icon: "disabled:text-gray-400 disabled:bg-transparent disabled:border-transparent",
   } as const;
 
   const sizes = {
@@ -58,7 +71,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
     lg: "w-12 h-12",
   } as const;
 
-  // fullWidth 優先、それ以外はデフォルト w-32
+  // fullWidth 優先、それ以外はデフォルト w-32（レイアウトの安定用）
   const widthClass = fullWidth ? "w-full" : "w-32";
 
   const sizeClass =
@@ -74,10 +87,11 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       ref={ref}
       type={type}
       aria-busy={isLoading || undefined}
-      disabled={disabled || isLoading}
+      disabled={isDisabled}
       className={clsx(
         base,
         variants[variant],
+        disabledVariants[variant],
         sizeClass,
         widthClass,
         className

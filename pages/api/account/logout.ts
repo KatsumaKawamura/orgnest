@@ -1,4 +1,4 @@
-// pages/api/logout.ts
+// pages/api/account/logout.ts
 import type { NextApiRequest, NextApiResponse } from "next";
 import { serialize } from "cookie";
 

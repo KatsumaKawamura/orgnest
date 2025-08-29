@@ -135,7 +135,7 @@ export default function FadeModalWrapper({
   // 初期フォーカス & 復帰、Tab トラップ、背面スクロールロック
   useModalFocus(visible, panelRef);
   useFocusTrap(panelRef, visible);
-  useScrollLock();
+  useScrollLock(visible);
 
   // inert スタック
   useInertStack(overlayRef, visible);

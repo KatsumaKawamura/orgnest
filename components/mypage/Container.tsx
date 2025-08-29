@@ -8,6 +8,10 @@ import SettingsModal from "@/components/account/SettingsModal";
 import Header from "@/components/mypage/Header";
 import Tabs, { TabKey } from "@/components/mypage/Tabs";
 
+// ← 追加：ProjectList を差し込むためのコンテナ
+import ProjectListContainer from "@/components/mypage/projectlist/ProjectListContainer";
+import MyScheduleContainer from "@/components/mypage/myschedule/MyScheduleContainer";
+
 export default function Container({
   user: initialUser,
   initialSchedules,
@@ -34,7 +38,7 @@ export default function Container({
   const formattedDateWithBrackets = `${datePart}（${weekdayPart}）`;
 
   const handleLogout = async () => {
-    await fetch("/api/logout", { method: "POST" });
+    await fetch("/api/account/logout", { method: "POST" });
     router.push("/");
   };
 
@@ -51,9 +55,11 @@ export default function Container({
 
       <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
-      {activeTab === "myschedule" && <div>MySchedule Content（実装予定）</div>}
+      {activeTab === "myschedule" && <MyScheduleContainer />}
       {activeTab === "team" && <div>Team Content（実装予定）</div>}
-      {activeTab === "project" && <div>Project List Content（実装予定）</div>}
+
+      {/* ← ここだけ差し替え（以前のプレースホルダを削除） */}
+      {activeTab === "project" && <ProjectListContainer />}
 
       {showSettingsModal && (
         <FadeModalWrapper onClose={() => setShowSettingsModal(false)} asChild>

@@ -26,7 +26,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/me", { credentials: "include" })
+    fetch("/api/account/me", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.user) setUser(data.user);

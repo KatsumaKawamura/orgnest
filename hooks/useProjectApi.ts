@@ -1,80 +1,67 @@
-// /hooks/useProjectApi.ts
+// @/hooks/useProjectApi.ts
 import { useCallback } from "react";
-import { supabase } from "@/lib/supabaseClient";
 
 export interface Project {
-  id: number;
-  name: string;
+  id: string; // uuid
+  project: string; // name
+}
+
+async function jsonFetch<T>(
+  input: RequestInfo,
+  init?: RequestInit
+): Promise<T> {
+  const res = await fetch(input, {
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    ...init,
+  });
+  if (!res.ok) {
+    let msg = "Request failed";
+    try {
+      const j = await res.json();
+      msg = j?.error ?? msg;
+    } catch {}
+    throw new Error(msg);
+  }
+  return res.json();
 }
 
 export function useProjectApi() {
-  // 一覧取得
   const getProjects = useCallback(async (): Promise<Project[]> => {
-    const { data, error } = await supabase
-      .from("projects")
-      .select("*")
-      .order("id", { ascending: true });
-    if (error) {
-      console.error("Error fetching projects:", error.message);
-      return [];
-    }
-    return data || [];
+    return jsonFetch<Project[]>("/api/project-list");
   }, []);
 
-  // 追加
-  const addProject = useCallback(
-    async (name: string): Promise<Project | null> => {
-      const { data, error } = await supabase
-        .from("projects")
-        .insert([{ name }])
-        .select()
-        .single();
-      if (error) {
-        console.error("Error adding project:", error.message);
-        return null;
-      }
-      return data;
-    },
-    []
-  );
+  const addProject = useCallback(async (name: string): Promise<Project> => {
+    return jsonFetch<Project>("/api/project-list", {
+      method: "POST",
+      body: JSON.stringify({ project: name }),
+    });
+  }, []);
 
-  // 更新
   const updateProject = useCallback(
-    async (id: number, name: string): Promise<Project | null> => {
-      const { data, error } = await supabase
-        .from("projects")
-        .update({ name })
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) {
-        console.error("Error updating project:", error.message);
-        return null;
-      }
-      return data;
+    async (id: string, name: string): Promise<Project> => {
+      return jsonFetch<Project>(`/api/project-list/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ project: name }),
+      });
     },
     []
   );
 
-  // 削除（単体）
-  const deleteProject = useCallback(async (id: number): Promise<boolean> => {
-    const { error } = await supabase.from("projects").delete().eq("id", id);
-    if (error) {
-      console.error("Error deleting project:", error.message);
-      return false;
-    }
-    return true;
+  const deleteProject = useCallback(async (id: string): Promise<void> => {
+    await jsonFetch<{ ok: true }>(`/api/project-list/${id}`, {
+      method: "DELETE",
+    });
   }, []);
 
-  // 削除（複数）
   const bulkDeleteProjects = useCallback(
-    async (ids: number[]): Promise<boolean> => {
-      const { error } = await supabase.from("projects").delete().in("id", ids);
-      if (error) {
-        console.error("Error bulk deleting projects:", error.message);
-        return false;
+    async (ids: string[]): Promise<void> => {
+      // MVP: 単体DELETEを順次実行（件数少想定）
+      for (const id of ids) {
+        await jsonFetch<{ ok: true }>(`/api/project-list/${id}`, {
+          method: "DELETE",
+        });
       }
-      return true;
     },
     []
   );

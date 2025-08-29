@@ -1,290 +1,182 @@
 "use client";
 
-import { Ref, PropsWithChildren } from "react";
 import Button from "@/components/common/Button";
 import Input from "@/components/common/Input";
-import FieldHint from "@/components/common/FieldHint";
 import PasswordInput from "@/components/common/PasswordInput";
-import useFormNavWithActions from "@/hooks/useFormNavWithActions";
-import type { Availability, Checking } from "@/types/register";
+import type { UseAuthFormReturn } from "@/hooks/forms/useAuthForm";
+import { errorMessagesJA } from "@/ui/i18n/errorMessages";
 
-type Props = {
-  values: {
-    userId: string;
-    password: string;
-    confirmPassword: string;
-    contact: string;
-    userName: string;
-  };
-  errors: {
-    userId?: string;
-    password?: string;
-    confirmPassword?: string;
-    contact?: string;
-    userName?: string;
-  };
-  availability: Availability; // { userId?: "unknown" | "available" | "taken" }
-  checking: Checking; // { userId: boolean }
-  submitting: boolean;
-  onChange: {
-    setUserId: (v: string) => void;
-    setPassword: (v: string) => void;
-    setConfirmPassword: (v: string) => void;
-    setContact: (v: string) => void;
-    setUserName: (v: string) => void;
-  };
+type Values = UseAuthFormReturn["values"];
+type Setters = UseAuthFormReturn["setters"];
+type FieldErrors = UseAuthFormReturn["fieldErrors"];
+type Availability = UseAuthFormReturn["availability"];
+type Touched = UseAuthFormReturn["touched"];
+type Touch = UseAuthFormReturn["touch"];
+
+export interface RegisterFormCardProps {
+  values: Values;
+  setters: Setters;
+  fieldErrors: FieldErrors;
+  availability: Availability; // "unknown" | "available" | "taken" | "error"
+  checking: boolean;
+  canSubmit: boolean;
   onCancel: () => void;
   onSubmit: () => void;
-  submitDisabled: boolean;
-
-  /** 互換維持のため受け取るが、内部フックで完結するため必須ではない */
-  actionRowRef?: Ref<HTMLDivElement>;
-  /** ←/→ 等の親側ロジックがあれば併用できるよう受け取る */
-  onRootKeyDown?: (e: React.KeyboardEvent | KeyboardEvent) => void;
-};
-
-/** 「入力してください」を赤にしない（句点/末尾空白を無視） */
-const isPlainInputRequest = (msg?: string) => {
-  if (!msg) return false;
-  const normalized = msg.trim().replace(/[。\.]\s*$/, "");
-  return normalized === "入力してください";
-};
-/** 共通：通常エラーメッセージ→赤/「入力してください」→neutral */
-const stateFromError = (msg?: string) =>
-  msg ? (isPlainInputRequest(msg) ? "neutral" : "error") : "neutral";
-
-/**
- * ヒント行の高さを常に確保するため、FieldHint を min-height 付きの
- * コンテナでラップ。未表示時は不可視プレースホルダーで1行分を保持。
- * - 想定文字サイズ: text-xs（約1.25rem行高）
- * - 実ヒントが2行以上なら自動で高さ拡張
- */
-function FormRow({
-  label,
-  hintMessage,
-  hintState = "neutral",
-  className,
-  children,
-}: PropsWithChildren<{
-  label: string;
-  hintMessage?: string;
-  hintState?: "neutral" | "ok" | "waiting" | "error";
-  className?: string;
-}>) {
-  return (
-    <div className={className}>
-      <label className="text-gray-800 block text-sm mb-1">{label}</label>
-      {children}
-      <div
-        className="mt-1 min-h-[1.25rem]"
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {hintMessage ? (
-          <FieldHint message={hintMessage} state={hintState} />
-        ) : (
-          /* text-xs と同じ行高を不可視で確保 */
-          <span className="invisible block text-xs">&nbsp;</span>
-        )}
-      </div>
-    </div>
-  );
+  touched: Touched;
+  touch: Touch;
 }
 
 export default function RegisterFormCard({
   values,
-  errors,
+  setters,
+  fieldErrors,
   availability,
   checking,
-  submitting,
-  onChange,
+  canSubmit,
   onCancel,
   onSubmit,
-  submitDisabled,
-  actionRowRef: externalActionRowRef,
-  onRootKeyDown,
-}: Props) {
-  const { userId, password, confirmPassword, contact, userName } = values;
+  touched,
+  touch,
+}: RegisterFormCardProps) {
+  const userIdHelp = (() => {
+    if (checking) return <span className="text-gray-500">確認中…</span>;
+    if (availability === "available")
+      return <span className="text-green-600">使用可能です</span>;
+    if (availability === "taken")
+      return <span className="text-red-600">使用できません</span>;
+    return null; // unknown/error は表示しない
+  })();
 
-  // 共通フック：↑/↓ロービング + ActionsRow 引き込み
-  const { getRootProps, actionRowRef, onKeyDown } = useFormNavWithActions();
-
-  // 互換：外から actionRowRef をもらっていればマージ（片方しか来ない前提でもOK）
-  const mergeActionRowRef = (node: HTMLDivElement | null) => {
-    // 内部
-    // @ts-ignore
-    actionRowRef.current = node;
-    // 外部（コールバック or RefObject 両対応）
-    if (typeof externalActionRowRef === "function") {
-      externalActionRowRef(node);
-    } else if (
-      externalActionRowRef &&
-      "current" in (externalActionRowRef as any)
-    ) {
-      (externalActionRowRef as any).current = node;
-    }
-  };
-
-  const availabilityStatus = availability.userId ?? "unknown";
-  const isChecking = !!checking.userId;
-
-  const userIdHintMsg = isChecking
-    ? "ユーザーIDを確認中…"
-    : errors.userId ??
-      (availabilityStatus === "taken"
-        ? "このUSER_IDは使用できません"
-        : availabilityStatus === "available"
-        ? "使用可能です"
-        : undefined);
-
-  const userIdHintState = isChecking
-    ? "neutral"
-    : errors.userId
-    ? stateFromError(errors.userId)
-    : availabilityStatus === "available"
-    ? "ok"
-    : availabilityStatus === "taken"
-    ? "error"
-    : "neutral";
-
-  // getRootProps から受けた onKeyDown に、親からの onRootKeyDown を“後段”で併用
-  const { ref: rootRef, onKeyDown: rootOnKeyDown } = getRootProps();
-
-  return (
+  // ヒント行を常に一定の高さで確保（1.25rem）
+  const HintRow = ({ children }: { children: React.ReactNode }) => (
     <div
-      ref={rootRef}
-      className="bg-white text-gray-800 p-6 rounded shadow-lg w-[min(92vw,420px)]"
-      onKeyDown={(e) => {
-        rootOnKeyDown(e);
-        onRootKeyDown?.(e);
-      }}
+      className="mt-1 text-xs h-5 flex items-center"
+      aria-live="polite"
+      aria-atomic="true"
     >
-      <h2 className="text-lg font-semibold mb-4" data-modal-title>
-        アカウント作成
+      {children ?? <span className="invisible">placeholder</span>}
+    </div>
+  );
+
+  // ※ 外枠（bg-white / shadow / padding）は親（RegisterModal）側で付与する想定
+  return (
+    <>
+      <h2 className="text-lg font-semibold text-gray-900 text-center">
+        アカウント登録
       </h2>
 
-      {/* USER_ID */}
-      <FormRow
-        label="・USER_ID"
-        hintMessage={userIdHintMsg}
-        hintState={userIdHintState}
-      >
-        <Input
-          type="text"
-          placeholder="USER_ID（ログインに使用）"
-          value={userId}
-          onChange={(e) => onChange.setUserId(e.target.value)}
-          className="mb-1"
-          disabled={submitting}
-          aria-invalid={!!errors.userId}
-        />
-      </FormRow>
+      <div className="mt-4 space-y-4">
+        {/* USER_ID */}
+        <label className="block">
+          <span className="mb-1 block text-sm text-gray-700">・USER_ID</span>
+          <Input
+            value={values.userId}
+            onValueChange={setters.setUserId}
+            onBlur={touch.userId}
+            placeholder="USER_ID"
+          />
+          <HintRow>
+            {touched.userId && fieldErrors.userId ? (
+              <span className="text-red-600">
+                {errorMessagesJA[fieldErrors.userId]}
+              </span>
+            ) : (
+              userIdHelp ?? (
+                <span className="text-gray-500">
+                  小文字英字と _ のみ／1〜32文字
+                </span>
+              )
+            )}
+          </HintRow>
+        </label>
 
-      {/* PASSWORD */}
-      <FormRow
-        className="mt-4"
-        label="・PASSWORD"
-        hintMessage={errors.password}
-        hintState={stateFromError(errors.password)}
-      >
-        <PasswordInput
-          placeholder="PASSWORD"
-          value={password}
-          onChange={(e) => onChange.setPassword(e.target.value)}
-          className="mb-1"
-          disabled={submitting}
-          aria-invalid={!!errors.password}
-          autoComplete="new-password"
-        />
-      </FormRow>
+        {/* PASSWORD */}
+        <label className="block">
+          <span className="mb-1 block text-sm text-gray-700">・PASSWORD</span>
+          <PasswordInput
+            value={values.password}
+            onValueChange={setters.setPassword}
+            onBlur={touch.password}
+            placeholder="PASSWORD"
+          />
+          <HintRow>
+            {touched.password && fieldErrors.password ? (
+              <span className="text-red-600">
+                {errorMessagesJA[fieldErrors.password]}
+              </span>
+            ) : !touched.password ? (
+              <span className="text-gray-500">
+                半角の英数字・記号のみ（スペース不可）で入力してください
+              </span>
+            ) : (
+              <span className="invisible">placeholder</span>
+            )}
+          </HintRow>
+        </label>
 
-      {/* CONFIRM PASSWORD */}
-      <FormRow
-        label=""
-        hintMessage={errors.confirmPassword}
-        hintState={stateFromError(errors.confirmPassword)}
-      >
-        <PasswordInput
-          placeholder="PASSWORD（確認）"
-          value={confirmPassword}
-          onChange={(e) => onChange.setConfirmPassword(e.target.value)}
-          className="mb-1"
-          disabled={submitting}
-          aria-invalid={!!errors.confirmPassword}
-          autoComplete="new-password"
-        />
-      </FormRow>
+        {/* CONFIRM */}
+        <label className="block">
+          <PasswordInput
+            value={values.confirmPassword}
+            onValueChange={setters.setConfirmPassword}
+            onBlur={touch.confirmPassword}
+            placeholder="PASSWORD（確認）"
+          />
+          <HintRow>
+            {touched.confirmPassword && fieldErrors.confirmPassword ? (
+              <span className="text-red-600">
+                {errorMessagesJA[fieldErrors.confirmPassword]}
+              </span>
+            ) : !touched.confirmPassword ? (
+              <span className="text-gray-500">
+                確認のため再入力してください。
+              </span>
+            ) : (
+              <span className="invisible">placeholder</span>
+            )}
+          </HintRow>
+        </label>
 
-      {/* CONTACT */}
-      <FormRow
-        className="mt-4"
-        label="・CONTACT"
-        hintMessage={
-          errors.contact ?? "任意入力です。ログイン後に再設定できます。"
-        }
-        hintState={stateFromError(errors.contact)}
-      >
-        <Input
-          type="text"
-          placeholder="E-MAIL（PASS再設定用）"
-          value={contact}
-          onChange={(e) => onChange.setContact(e.target.value)}
-          className="mb-1"
-          disabled={submitting}
-        />
-      </FormRow>
+        {/* CONTACT（任意） */}
+        <label className="block">
+          <span className="mb-1 block text-sm text-gray-700">・CONTACT</span>
+          <Input
+            value={values.contact}
+            onValueChange={setters.setContact}
+            placeholder="E-MAIL"
+          />
+          <HintRow>
+            <span className="text-gray-500">
+              入力は任意です。アプリ内で再設定できます。
+            </span>
+          </HintRow>
+        </label>
 
-      {/* USER_NAME */}
-      <FormRow
-        className="mt-4"
-        label="・USER_NAME"
-        hintMessage={
-          errors.userName ?? "任意入力です。ログイン後に再設定できます。"
-        }
-        hintState={stateFromError(errors.userName)}
-      >
-        <Input
-          type="text"
-          placeholder="USER_NAME（アプリ内での表示名）"
-          value={userName}
-          onChange={(e) => onChange.setUserName(e.target.value)}
-          className="mb-1"
-          disabled={submitting}
-          aria-invalid={!!errors.userName}
-        />
-      </FormRow>
+        {/* USER_NAME（任意） */}
+        <label className="block">
+          <span className="mb-1 block text-sm text-gray-700">・USER_NAME</span>
+          <Input
+            value={values.userName}
+            onValueChange={setters.setUserName}
+            placeholder="USER_NAME"
+          />
+          <HintRow>
+            <span className="text-gray-500">
+              入力は任意です。アプリ内で再設定できます。
+            </span>
+          </HintRow>
+        </label>
+      </div>
 
-      {/* ボタン群 */}
-      <div
-        ref={mergeActionRowRef}
-        role="group"
-        aria-orientation="horizontal"
-        className="mt-4 flex justify-between"
-      >
-        <Button
-          variant="secondary"
-          size="md"
-          onClick={onCancel}
-          disabled={submitting}
-          type="button"
-          data-enter-ignore
-          data-action="cancel"
-        >
+      {/* Actions（2カラム／各カラム中央） */}
+      <div className="mt-6 grid grid-cols-2 gap-3 justify-items-center">
+        <Button variant="secondary" onClick={onCancel}>
           キャンセル
         </Button>
-
-        <Button
-          variant="primary"
-          size="md"
-          onClick={onSubmit}
-          disabled={submitDisabled}
-          aria-disabled={submitDisabled}
-          data-enter
-          data-action="primary"
-        >
-          登録
+        <Button onClick={onSubmit} disabled={!canSubmit}>
+          確認へ
         </Button>
       </div>
-    </div>
+    </>
   );
 }

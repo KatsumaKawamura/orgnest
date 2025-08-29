@@ -1,6 +1,6 @@
-// @ts-nocheck
-// ScheduleContainer.tsx
+// components/schedule/ScheduleContainer.tsx
 "use client";
+
 import { useState, useEffect } from "react";
 import MyPageContent from "@/components/schedule/mypage/MyPageContent";
 import TeamContent from "@/components/schedule/team/TeamContent";
@@ -12,52 +12,40 @@ export default function ScheduleContainer() {
     "mypage"
   );
 
-  // === MyPageカードを親で管琁E===
+  // === MyPage のカード ===
   const [mypageCards, setMypageCards] = useState<MyPageCard[]>([]);
 
-  // マウント後にlocalStorageから読み込み
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const saved = localStorage.getItem("mypage_cards");
       if (saved) setMypageCards(JSON.parse(saved));
-    } catch {
-      console.error("Failed to parse mypage_cards");
+    } catch (e) {
+      console.error("Failed to parse mypage_cards", e);
     }
   }, []);
 
-  // 保孁E
   useEffect(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem("mypage_cards", JSON.stringify(mypageCards));
+    try {
+      localStorage.setItem("mypage_cards", JSON.stringify(mypageCards));
+    } catch (e) {
+      console.error("Failed to save mypage_cards", e);
+    }
   }, [mypageCards]);
 
-  // === プロジェクトリストを親で管琁E===
-  const [projectList, setProjectList] = useState<string[]>(["案件A", "案件B"]);
+  // === MyPage で使うダミーのプロジェクト名（ローカル表示用） ===
+  const [projectList] = useState<string[]>(["プロジェクトA", "プロジェクトB"]);
 
-  const addProject = (name: string) => {
-    if (name && !projectList.includes(name)) {
-      setProjectList([...projectList, name]);
-    }
-  };
-
-  const removeProject = (name: string) => {
-    setProjectList(projectList.filter((p) => p !== name));
-  };
-
-  const replaceProjects = (newList: string[]) => {
-    setProjectList(newList);
-  };
-
-  // 今日の日仁E
+  // === 画面上部の日付表示 ===
   const today = new Date();
   const datePart = today.toLocaleDateString("ja-JP", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
-  const weekdayPart = "日月火水木金土"[today.getDay()];
-  const formattedDateWithBrackets = `${datePart}�E�E{weekdayPart}�E�`;
+  const weekday = ["日", "月", "火", "水", "木", "金", "土"][today.getDay()];
+  const formattedDateWithBrackets = `${datePart}（${weekday}）`;
 
   return (
     <main className="p-6 bg-[#ece9e5] min-h-screen">
@@ -65,6 +53,7 @@ export default function ScheduleContainer() {
         {formattedDateWithBrackets}
       </div>
 
+      {/* タブ */}
       <div className="mb-4 flex space-x-4 border-b border-gray-300">
         <button
           onClick={() => setActiveTab("team")}
@@ -98,6 +87,7 @@ export default function ScheduleContainer() {
         </button>
       </div>
 
+      {/* 本文 */}
       {activeTab === "mypage" && (
         <MyPageContent
           projectList={projectList}
@@ -106,15 +96,9 @@ export default function ScheduleContainer() {
         />
       )}
       {activeTab === "team" && <TeamContent />}
-      {activeTab === "project" && (
-        <ProjectListContent
-          projectList={projectList}
-          onAdd={addProject}
-          onRemove={removeProject}
-          onReplace={replaceProjects}
-        />
-      )}
+
+      {/* ここは props なしでOK（hooksで自己完結） */}
+      {activeTab === "project" && <ProjectListContent />}
     </main>
   );
 }
-

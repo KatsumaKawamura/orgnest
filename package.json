@@ -6,11 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "gen:types": "npx supabase@latest gen types typescript --schema public --linked > types/supabase.ts"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",
-    "@supabase/supabase-js": "^2.53.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.56.0",
     "bcryptjs": "^3.0.2",
     "cookie": "^1.0.2",
     "framer-motion": "^12.23.12",
@@ -30,6 +32,7 @@
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"

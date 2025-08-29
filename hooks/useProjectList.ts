@@ -1,91 +1,57 @@
-import { useState, useMemo } from "react";
+// @/hooks/useProjectList.ts
+"use client";
 
-export interface Project {
-  id: number;
-  name: string;
-}
+import { useMemo, useState } from "react";
+import type { Project } from "@/hooks/useProjectApi";
 
+/**
+ * ProjectList の UI 状態管理（短編集／明示削除なし）
+ * - 単一行のみ編集可能（他行の編集ボタンは disabled）
+ * - 保存時に trim()。空なら削除扱い（API呼び出しは親から渡す）
+ * - 並びは大小無視の昇順、同値は id で安定ソート
+ */
 export function useProjectList(initial: Project[]) {
   const [projects, setProjects] = useState<Project[]>(initial);
   const [newProject, setNewProject] = useState("");
-  const [deleteMode, setDeleteMode] = useState(false);
-  const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
-  const [showConfirmBulk, setShowConfirmBulk] = useState(false);
-  const [editingProject, setEditingProject] = useState<number | null>(null);
+
+  // 短編集（1行のみ）
+  const [editingProject, setEditingProject] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
-  // 名前順ソート
-  const sortedProjects = useMemo(
-    () => [...projects].sort((a, b) => a.name.localeCompare(b.name, "ja")),
-    [projects]
-  );
+  // 並び（大小無視＋安定）
+  const sortedProjects = useMemo(() => {
+    return [...projects].sort((a, b) => {
+      const p = a.project.localeCompare(b.project, "ja", {
+        sensitivity: "base",
+      });
+      if (p !== 0) return p;
+      return a.id.localeCompare(b.id);
+    });
+  }, [projects]);
 
-  // 編集開始
-  const startEdit = (id: number, currentName: string) => {
+  // 編集開始（他行が編集中でも上書きで開始＝短編集維持）
+  const startEdit = (id: string, current: string) => {
     setEditingProject(id);
-    setEditValue(currentName);
-  };
-
-  // 編集確定（更新 or 削除）
-  const confirmEdit = async (
-    id: number,
-    updateProject: (id: number, name: string) => Promise<Project | null>,
-    deleteProject: (id: number) => Promise<boolean>
-  ) => {
-    const trimmed = editValue.trim();
-    try {
-      if (!trimmed) {
-        // 空なら削除
-        const ok = await deleteProject(id);
-        if (ok) setProjects((prev) => prev.filter((p) => p.id !== id));
-      } else {
-        // 値があれば更新
-        const updated = await updateProject(id, trimmed);
-        if (updated)
-          setProjects((prev) => prev.map((p) => (p.id === id ? updated : p)));
-      }
-    } catch (e) {
-      console.error("編集処理に失敗しました:", e);
-    } finally {
-      setEditingProject(null);
-      setEditValue("");
-    }
-  };
-
-  // 選択切替
-  const toggleSelect = (id: number) => {
-    setSelectedProjects((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
-  };
-
-  // 全選択/解除
-  const selectAllOrClear = () => {
-    if (selectedProjects.length === projects.length) {
-      setSelectedProjects([]);
-    } else {
-      setSelectedProjects(projects.map((p) => p.id));
-    }
+    setEditValue(current);
   };
 
   return {
+    // データ
     projects,
     setProjects,
+
+    // 追加フォーム
     newProject,
     setNewProject,
-    deleteMode,
-    setDeleteMode,
-    selectedProjects,
-    setSelectedProjects,
-    showConfirmBulk,
-    setShowConfirmBulk,
+
+    // 編集（短編集）
     editingProject,
+    setEditingProject,
     editValue,
     setEditValue,
-    sortedProjects,
     startEdit,
-    confirmEdit, // ← ここでエクスポート
-    toggleSelect,
-    selectAllOrClear,
+
+    // 導出
+    sortedProjects,
   };
 }

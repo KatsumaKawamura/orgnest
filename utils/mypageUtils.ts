@@ -1,3 +1,4 @@
+// @/utils/mypageUtils.ts
 import { MyPageCard } from "@/types/schedule";
 import { FLAG_OPTIONS } from "@/constants/mypage";
 

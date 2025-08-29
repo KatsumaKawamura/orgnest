@@ -13,7 +13,7 @@ const supabase = createClient(
 // 小文字英字と _ のみ 1〜32 文字
 const LOGIN_ID_RE = /^[a-z_]{1,32}$/;
 // パスワード最小長（必要に応じて強化）
-const PASSWORD_MIN = 8;
+const PASSWORD_MIN = 4;
 
 export default async function handler(
   req: NextApiRequest,
@@ -69,12 +69,10 @@ export default async function handler(
     // バリデーション & 可用性確認
     if (typeof login_id !== "undefined") {
       if (!LOGIN_ID_RE.test(String(login_id))) {
-        return res
-          .status(400)
-          .json({
-            error: "LOGIN_ID_INVALID",
-            message: "login_idの形式が不正です",
-          });
+        return res.status(400).json({
+          error: "LOGIN_ID_INVALID",
+          message: "login_idの形式が不正です",
+        });
       }
       // 変更がある場合のみ重複チェック
       if (String(login_id) !== String(current.login_id)) {
@@ -100,12 +98,10 @@ export default async function handler(
     if (typeof password !== "undefined") {
       const raw = String(password);
       if (raw.length < PASSWORD_MIN) {
-        return res
-          .status(400)
-          .json({
-            error: "PASSWORD_TOO_SHORT",
-            message: "passwordが短すぎます",
-          });
+        return res.status(400).json({
+          error: "PASSWORD_TOO_SHORT",
+          message: "passwordが短すぎます",
+        });
       }
       passwordHash = await bcrypt.hash(raw, 10);
     }

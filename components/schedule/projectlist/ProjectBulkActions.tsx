@@ -1,5 +1,6 @@
-// @ts-nocheck
+// components/schedule/projectlist/ProjectBulkActions.tsx
 "use client";
+
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 
 interface ProjectBulkActionsProps {
@@ -21,37 +22,40 @@ export default function ProjectBulkActions({
 }: ProjectBulkActionsProps) {
   return (
     <div className="flex space-x-2 w-[220px] justify-end">
+      {/* 削除モード トグル */}
       <button
+        type="button"
         onClick={onToggleDeleteMode}
-        className="flex items-center justify-center w-[96px] px-4 py-2 rounded bg-gray-300 text-gray-800 hover:bg-gray-400"
+        className="flex items-center justify-center w-[120px] px-4 py-2 rounded bg-gray-300 text-gray-800 hover:bg-gray-400"
       >
-        {deleteMode ? "戻めE : "選抁E}
+        {deleteMode ? "終了" : "削除モード"}
       </button>
+
+      {/* 一括削除（削除モード時のみ表示） */}
       {deleteMode ? (
         <div className="relative">
           <button
+            type="button"
             onClick={onShowConfirm}
-            className="w-[72px] px-4 py-2 bg-red-500 text-white rounded hover:bg-red-700"
+            className="w-[84px] px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
           >
             削除
           </button>
+
           {showConfirm && (
             <ConfirmDialog
-              message="選択した�Eロジェクトを削除しますか�E�E
+              message="選択中のプロジェクトを削除します。よろしいですか？"
               onCancel={onCancelConfirm}
               onConfirm={onBulkDelete}
-              confirmLabel="削除"
-              cancelLabel="戻めE
-              confirmClassName="px-3 py-1 text-sm bg-red-600 text-white hover:bg-red-700 border border-gray-800 rounded"
-              cancelClassName="px-3 py-1 text-sm text-gray-600 hover:bg-white border border-gray-800 rounded"
-              position="absolute"
+              cancelLabel="キャンセル"
+              confirmLabel="削除する"
             />
           )}
         </div>
       ) : (
-        <div className="w-[72px]" />
+        // ボタン幅合わせのダミー
+        <div className="w-[84px]" />
       )}
     </div>
   );
 }
-

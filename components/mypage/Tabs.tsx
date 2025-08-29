@@ -22,7 +22,7 @@ export default function Tabs({
   // 最長ラベルの長さを取得
   const maxLabelLength = Math.max(...keys.map((k) => labels[k].length));
   // 文字数ベースで幅を決める（ちょっと余裕を足す）
-  const tabWidthEm = maxLabelLength - 2; // ex) 最長+2文字分
+  const tabWidthEm = maxLabelLength - 2;
 
   return (
     <div className="mb-4 border-b border-gray-300">
