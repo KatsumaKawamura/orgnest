@@ -1,7 +1,7 @@
 // @/components/mypage/myschedule/MyscheduleActionBar.tsx
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import SimplePopover from "@/components/common/SimplePopover";
 import Button from "@/components/common/Button";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
@@ -85,12 +85,7 @@ export default function MyPageActionBar({
   return (
     <div className={`flex items-center gap-2 mb-4 relative ${className}`}>
       {/* 追加ボタン（固定位置） */}
-      <Button
-        onClick={onAdd}
-        variant="primary"
-        className="flex items-center w-auto"
-      >
-        <Plus className="w-5 h-5 mr-2" />
+      <Button onClick={onAdd} variant="primary" className="flex items-center ">
         予定を追加
       </Button>
 

@@ -11,6 +11,7 @@ import Tabs, { TabKey } from "@/components/mypage/Tabs";
 // ← 追加：ProjectList を差し込むためのコンテナ
 import ProjectListContainer from "@/components/mypage/projectlist/ProjectListContainer";
 import MyScheduleContainer from "@/components/mypage/myschedule/MyScheduleContainer";
+import TeamContainer from "@/components/mypage/team/TeamContainer";
 
 export default function Container({
   user: initialUser,
@@ -56,7 +57,7 @@ export default function Container({
       <Tabs activeTab={activeTab} onChange={setActiveTab} />
 
       {activeTab === "myschedule" && <MyScheduleContainer />}
-      {activeTab === "team" && <div>Team Content（実装予定）</div>}
+      {activeTab === "team" && <TeamContainer />}
 
       {/* ← ここだけ差し替え（以前のプレースホルダを削除） */}
       {activeTab === "project" && <ProjectListContainer />}
