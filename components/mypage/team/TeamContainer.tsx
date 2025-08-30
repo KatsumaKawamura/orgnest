@@ -6,7 +6,9 @@ import TeamLanding from "@/components/mypage/team/TeamLanding";
 import TeamLoginModal from "@/components/teamauth/TeamLoginModal";
 import TeamRegisterModal from "@/components/teamauth/TeamRegisterModal";
 import GearMenu from "@/components/common/GearMenu";
-import TeamSettingsModal from "@/components/teamaccount/TeamSettingsModal"; // ← 追加
+import TeamSettingsModal from "@/components/teamaccount/TeamSettingsModal";
+import TimelineView from "@/components/mypage/team/timeline/TimelineView";
+import { useTeamTimelineData } from "@/components/mypage/team/timeline/useTeamTimelineData";
 
 type TeamAuthStatus = "loading" | "unauthenticated" | "authenticated";
 
@@ -23,7 +25,7 @@ export default function TeamContainer() {
 
   const [showTeamLogin, setShowTeamLogin] = useState(false);
   const [showTeamRegister, setShowTeamRegister] = useState(false);
-  const [showTeamSettings, setShowTeamSettings] = useState(false); // ← 追加
+  const [showTeamSettings, setShowTeamSettings] = useState(false);
 
   // 起動時に /api/team/me で状態復元
   useEffect(() => {
@@ -62,6 +64,11 @@ export default function TeamContainer() {
       mounted = false;
     };
   }, []);
+
+  // ★ hooks は常に同じ順序で呼ぶ：ここで常に呼び、enabled で内部動作を切替
+  const { members, schedules, loading, error } = useTeamTimelineData(
+    status === "authenticated"
+  );
 
   // ログアウト
   const handleLogout = async () => {
@@ -106,7 +113,7 @@ export default function TeamContainer() {
 
         {/* Register */}
         {showTeamRegister && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify中心 bg-black/40">
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
             <TeamRegisterModal
               onClose={() => setShowTeamRegister(false)}
               onRegistered={(t) => {
@@ -147,9 +154,23 @@ export default function TeamContainer() {
         />
       </div>
 
-      {/* ビューバー予定地（空） */}
-      <div className="rounded border p-6 text-gray-500">
-        （チームビュー：準備中）
+      {/* タイムラインビュー */}
+      <div className="rounded border p-3">
+        {loading ? (
+          <div className="p-6 text-center text-sm text-gray-500">
+            読み込み中...
+          </div>
+        ) : error ? (
+          <div className="p-6 text-center text-sm text-red-500">
+            読み込みに失敗しました：{error}
+          </div>
+        ) : members.length === 0 ? (
+          <div className="p-6 text-center text-sm text-gray-500">
+            メンバーがいません。
+          </div>
+        ) : (
+          <TimelineView members={members} schedules={schedules} />
+        )}
       </div>
 
       {/* Team 設定モーダル */}

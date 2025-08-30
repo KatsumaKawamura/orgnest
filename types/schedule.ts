@@ -1,36 +1,37 @@
-// types/schedule.ts
+// @/types/schedule.ts
 
 // 既存の型
 export interface Member {
-  id: number;
+  id: string; // ← UUID 文字列に統一
   name: string;
 }
 
 // DBから取得する生データ（Supabaseレスポンス）
 export interface ScheduleDB {
-  id: number;
-  user_id: string; // ← member_id を user_id に変更
-  start: string; // "HH:MM:SS"
-  end: string; // "HH:MM:SS"
+  id: string;
+  user_id: string;
+  start: string; // "HH:MM:SS"（開発時の名残：今回のTeamタイムラインでは未使用）
+  end: string; // "HH:MM:SS"（同上）
   flag: string;
   project_name: string;
-  notes: string;
+  notes: string | null;
 }
 
 // フロントで使う型（UI用に整形済み）
+// B案：minベースに刷新（"HH:MM" は持たない）
 export interface Schedule {
-  id: number;
-  userId: string; // ← camelCase で userId
-  start: string; // "HH:MM"
-  end: string; // "HH:MM"
+  id: string;
+  userId: string; // UUID
+  startMin: number; // 分単位
+  endMin: number; // 分単位
   flag: string;
-  project: string; // project_name の整形済み
-  notes: string;
+  project: string;
+  notes: string | null;
   slotIndex: number;
   slotCount: number;
 }
 
-// MyPageカード用
+// MyPageカード用（既存そのまま）
 export interface MyPageCard {
   id: string;
   startHour: string;
@@ -42,7 +43,7 @@ export interface MyPageCard {
   flag: string;
 }
 
-// 新規作成用入力型
+// 新規作成用入力型（既存そのまま）
 export interface ScheduleCreateInput {
   user_id: string;
   project_name: string;
@@ -52,7 +53,7 @@ export interface ScheduleCreateInput {
   notes: string;
 }
 
-// --- MyPage系コンポーネント共通Props ---
+// --- MyPage系コンポーネント共通Props（既存そのまま） ---
 export interface MyPageContentProps {
   projectList: string[];
 }

@@ -2,8 +2,8 @@
 import { Member, Schedule } from "./schedule";
 
 export interface TimelineViewProps {
-  members?: Member[];
-  schedules?: Schedule[];
+  members: Member[];
+  schedules: Schedule[];
 }
 
 export interface TimelineHeaderProps {
