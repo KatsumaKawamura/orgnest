@@ -1,3 +1,5 @@
+// src/pages/_app.tsx
+import Head from "next/head";
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { UserProvider } from "@/context/UserContext";
@@ -6,8 +8,13 @@ import "@/styles/basemodal-motion.css";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <UserProvider>
-      <Component {...pageProps} />
-    </UserProvider>
+    <>
+      <Head>
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
+      <UserProvider>
+        <Component {...pageProps} />
+      </UserProvider>
+    </>
   );
 }
