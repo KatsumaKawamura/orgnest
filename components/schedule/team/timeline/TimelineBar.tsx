@@ -1,4 +1,6 @@
+// @/components\schedule\team\timeline\TimelineBar.tsx
 // @ts-nocheck
+// 旧ver
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { Schedule, Member } from "@/types/schedule";
@@ -83,4 +85,3 @@ export default function TimelineBar({
     </div>
   );
 }
-

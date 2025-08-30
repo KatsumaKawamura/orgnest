@@ -8,6 +8,10 @@ import TeamRegisterModal from "@/components/teamauth/TeamRegisterModal";
 import GearMenu from "@/components/common/GearMenu";
 import TeamSettingsModal from "@/components/teamaccount/TeamSettingsModal";
 import TimelineView from "@/components/mypage/team/timeline/TimelineView";
+
+// ✨ 追加：メンバー専用フックを利用
+import { useTeamMembers } from "@/components/mypage/team/timeline/useTeamMembers";
+// ✨ スケジュール専用にしたフックを利用
 import { useTeamTimelineData } from "@/components/mypage/team/timeline/useTeamTimelineData";
 
 type TeamAuthStatus = "loading" | "unauthenticated" | "authenticated";
@@ -65,10 +69,20 @@ export default function TeamContainer() {
     };
   }, []);
 
-  // ★ hooks は常に同じ順序で呼ぶ：ここで常に呼び、enabled で内部動作を切替
-  const { members, schedules, loading, error } = useTeamTimelineData(
-    status === "authenticated"
-  );
+  // ★ hooks は常に同じ順序で呼ぶ：enabled フラグで内部動作を切替
+  // メンバーは専用API（/api/team/members）から常に取得 → 予定が空でも列を確保
+  const {
+    members,
+    loading: membersLoading,
+    error: membersError,
+  } = useTeamMembers(status === "authenticated");
+
+  // スケジュールは既存APIから取得（スケジュール専用）
+  const {
+    schedules,
+    loading: schedulesLoading,
+    error: schedulesError,
+  } = useTeamTimelineData(status === "authenticated");
 
   // ログアウト
   const handleLogout = async () => {
@@ -85,7 +99,7 @@ export default function TeamContainer() {
   };
 
   if (status === "loading") {
-    return <div className="p-4" />; // 何も描画しない
+    return <div className="p-4" />; // 何も描画しない（フェード等があれば差し替え可）
   }
 
   if (status === "unauthenticated") {
@@ -131,6 +145,10 @@ export default function TeamContainer() {
   // 認証済みビュー
   const displayTeamName = team?.team_name ?? team?.team_login_id ?? "Team";
 
+  // ローディング／エラーの集約表示（必要に応じてUI調整OK）
+  const isLoading = membersLoading || schedulesLoading;
+  const firstError = membersError || schedulesError;
+
   return (
     <div className="p-4">
       {/* ヘッダー：左側はタイトル、右側は（ユーザーと同形式の）チーム名＋ギア＋ドロップダウン */}
@@ -156,13 +174,13 @@ export default function TeamContainer() {
 
       {/* タイムラインビュー */}
       <div className="rounded border p-3">
-        {loading ? (
+        {isLoading ? (
           <div className="p-6 text-center text-sm text-gray-500">
             読み込み中...
           </div>
-        ) : error ? (
+        ) : firstError ? (
           <div className="p-6 text-center text-sm text-red-500">
-            読み込みに失敗しました：{error}
+            読み込みに失敗しました：{firstError}
           </div>
         ) : members.length === 0 ? (
           <div className="p-6 text-center text-sm text-gray-500">

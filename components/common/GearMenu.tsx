@@ -59,7 +59,7 @@ export default function GearMenu({
   return (
     <div className="relative" ref={menuRef}>
       <div className="flex items-center space-x-2">
-        <span className="text-base">{displayName}</span>
+        <span className="text-base font-semibold">{displayName}</span>
         <Button variant="icon" size="sm" onClick={handleGearClick}>
           <Settings className="w-5 h-5" />
         </Button>

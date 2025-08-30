@@ -5,8 +5,8 @@ export const FLAG_OPTIONS = ["事務所", "現場", "打ち合わせ"] as const;
 
 // 時間選択肢
 export const HOURS = [
-  ...Array.from({ length: 18 }, (_, i) => String(i + 6).padStart(2, "0")), // 6〜23
-  ...Array.from({ length: 6 }, (_, i) => String(i).padStart(2, "0")), // 0〜5
+  ...Array.from({ length: 16 }, (_, i) => String(i + 8).padStart(2, "0")), // 8〜23
+  ...Array.from({ length: 8 }, (_, i) => String(i).padStart(2, "0")), // 0〜7
 ];
 
 export const MINUTES = Array.from({ length: 4 }, (_, i) =>

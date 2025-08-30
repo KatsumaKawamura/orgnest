@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Member, Schedule } from "@/types/schedule";
+import { Schedule } from "@/types/schedule";
 import { assignSlots } from "@/utils/scheduleUtils";
 
 type ApiItem = {
@@ -16,11 +16,6 @@ type ApiItem = {
   flag: string;
   created_at: string;
   updated_at: string;
-  user: {
-    user_id: string;
-    login_id: string;
-    user_name: string | null;
-  };
 };
 
 type ApiResponse = {
@@ -29,11 +24,11 @@ type ApiResponse = {
 };
 
 /**
- * チーム用タイムラインデータ取得
- * - 常に hook は呼び、enabled で fetch の有無のみ切り替え（hooks ルール順守）
+ * チーム用タイムライン（スケジュール専用）
+ * - enabled=false ならフェッチしない
+ * - members は別フック（useTeamMembers）で取得
  */
 export function useTeamTimelineData(enabled: boolean = true) {
-  const [members, setMembers] = useState<Member[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState<boolean>(enabled);
   const [error, setError] = useState<string | null>(null);
@@ -41,9 +36,7 @@ export function useTeamTimelineData(enabled: boolean = true) {
   useEffect(() => {
     let mounted = true;
 
-    // enabled=false のときは no-op（状態は初期化して待機しない）
     if (!enabled) {
-      setMembers([]);
       setSchedules([]);
       setLoading(false);
       setError(null);
@@ -68,25 +61,12 @@ export function useTeamTimelineData(enabled: boolean = true) {
           setLoading(false);
           return;
         }
+
         const data = (await res.json()) as ApiResponse;
         const items = Array.isArray(data?.items) ? data.items : [];
 
-        // メンバー抽出（user_name ?? login_id）
-        const mMap = new Map<string, Member>();
-        for (const it of items) {
-          const id = it.user?.user_id || it.user_id;
-          if (!id) continue;
-          if (!mMap.has(id)) {
-            mMap.set(id, {
-              id,
-              name: it.user?.user_name ?? it.user?.login_id ?? "(no name)",
-            });
-          }
-        }
-        const ms = Array.from(mMap.values());
-
-        // スケジュール（dateは無視・minベース）
-        const rawSchedules: Schedule[] = items
+        // スケジュール（minベース）
+        const raw: Schedule[] = items
           .filter(
             (it) =>
               typeof it.start_min === "number" &&
@@ -105,9 +85,8 @@ export function useTeamTimelineData(enabled: boolean = true) {
             slotCount: 1,
           }));
 
-        const slotted = assignSlots(rawSchedules);
+        const slotted = assignSlots(raw);
 
-        setMembers(ms);
         setSchedules(slotted);
         setLoading(false);
       } catch {
@@ -123,7 +102,7 @@ export function useTeamTimelineData(enabled: boolean = true) {
   }, [enabled]);
 
   return useMemo(
-    () => ({ members, schedules, loading, error }),
-    [members, schedules, loading, error]
+    () => ({ schedules, loading, error }),
+    [schedules, loading, error]
   );
 }

@@ -5,6 +5,7 @@ module.exports = {
     "./components/**/*.{js,ts,jsx,tsx}",
     "./app/**/*.{js,ts,jsx,tsx}", // ← 将来のため（使ってなければ無害）
     "./src/**/*.{js,ts,jsx,tsx}", // ← 同上
+    "./constants/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {

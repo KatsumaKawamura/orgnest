@@ -39,7 +39,7 @@ export default function MyScheduleContainer() {
   // 当日のスケジュール取得（DB → UI へ snake_case → camelCase 変換）
   const loadSchedules = useCallback(async () => {
     try {
-      const res = await fetch(`/api/myschedule?date=${todayJP()}`, {
+      const res = await fetch(`/api/myschedule`, {
         credentials: "include",
       });
       if (res.ok) {

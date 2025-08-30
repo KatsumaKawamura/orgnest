@@ -1,4 +1,5 @@
-// components/mypage/team/timeline/TimelineHeader.tsx
+// @/components/mypage/team/timeline/TimelineHeader.tsx
+// @ts-nocheck
 "use client";
 
 import { TimelineHeaderProps } from "@/types/timeline";
@@ -10,22 +11,22 @@ export default function TimelineHeader({
 }: TimelineHeaderProps) {
   return (
     <div
-      className="grid border-b text-xs text-gray-600"
+      className="grid min-w-max"
       style={{
         gridTemplateColumns: `${TIME_LABEL_WIDTH}px repeat(${members.length}, ${memberColumnWidth}px)`,
       }}
     >
       {/* 左端の空き（時間ラベル列） */}
-      <div style={{ width: TIME_LABEL_WIDTH }} />
+      <div />
+
       {/* メンバー名ヘッダ */}
       {members.map((m) => (
         <div
           key={m.id}
-          className="flex h-9 items-center justify-center border-l bg-gray-50"
+          className="text-center font-semibold text-gray-800"
           style={{ width: memberColumnWidth }}
-          title={m.name}
         >
-          <span className="truncate max-w-full">{m.name}</span>
+          {m.name}
         </div>
       ))}
     </div>
