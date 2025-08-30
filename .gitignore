@@ -45,3 +45,8 @@ supabase/.branches/
 supabase/.tags/
 supabase/functions/.runtime/
 supabase/migrations/.snapshots/
+
+# VSCode
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
