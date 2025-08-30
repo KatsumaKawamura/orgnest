@@ -3,7 +3,7 @@
 
 import { Settings } from "lucide-react";
 import Button from "@/components/common/Button";
-import AccountMenuDropdown from "@/components/mypage/AccountMenuDropdown";
+import AccountMenuDropdown from "@/components/common/MenuDropdown";
 import ConfirmPopover from "@/components/common/ConfirmPopover";
 import useDropdownWithConfirm from "@/hooks/dropdown/useDropdownWithConfirm";
 
