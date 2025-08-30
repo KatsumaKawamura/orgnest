@@ -1,17 +1,12 @@
+// components/teamauth/TeamRegisterModal.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import TeamRegisterFormCard, {
-  TeamRegisterValues,
-  TeamRegisterSetters,
-  TeamRegisterFieldErrors,
-  TeamRegisterAvailability,
-  TeamRegisterTouched,
-  TeamRegisterTouch,
-} from "@/components/teamauth/TeamRegisterFormCard";
+import { useState } from "react";
+import TeamRegisterFormCard from "@/components/teamauth/TeamRegisterFormCard";
 import TeamRegisterReviewDialog from "@/components/teamauth/TeamRegisterReviewDialog";
 import ProgressDialog from "@/components/common/modal/ProgressDialog";
-import { USER_ID_RE, PASSWORD_RE } from "@/lib/validators/auth";
+import Dialog from "@/components/common/modal/Dialog"; // 無印と同じ Confirm 用
+import { useTeamAuthForm } from "@/hooks/forms/useTeamAuthForm";
 
 type ViewMode = "form" | "review";
 
@@ -27,111 +22,28 @@ export default function TeamRegisterModal({
   const [mode, setMode] = useState<ViewMode>("form");
   const [generalError, setGeneralError] = useState<string | null>(null);
 
-  // 進捗ダイアログ
+  // ProgressDialog の状態
   const [progressOpen, setProgressOpen] = useState(false);
   const [progressStatus, setProgressStatus] = useState<
     "processing" | "done" | "error"
   >("processing");
   const [progressMessage, setProgressMessage] = useState<string | undefined>();
 
-  // ---- フォーム状態（USER版 useAuthForm の最小移植） ----
-  const [values, setValues] = useState<TeamRegisterValues>({
-    teamId: "",
-    password: "",
-    confirmPassword: "",
-    contact: "",
-    teamName: "",
-  });
+  // OK押下時に行う後続処理（OKゲート用）
+  const [afterOk, setAfterOk] = useState<null | {
+    kind: "registered";
+    payload: { team_id: string; team_name: string | null };
+  }>(null);
 
-  const setters: TeamRegisterSetters = {
-    setTeamId: (v) => setValues((s) => ({ ...s, teamId: v })),
-    setPassword: (v) => setValues((s) => ({ ...s, password: v })),
-    setConfirmPassword: (v) => setValues((s) => ({ ...s, confirmPassword: v })),
-    setContact: (v) => setValues((s) => ({ ...s, contact: v })),
-    setTeamName: (v) => setValues((s) => ({ ...s, teamName: v })),
-  };
+  // キャンセル確認用（無印踏襲：入力ありなら confirm）
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  const [touched, setTouched] = useState<TeamRegisterTouched>({
-    teamId: false,
-    password: false,
-    confirmPassword: false,
-  });
-  const touch: TeamRegisterTouch = {
-    teamId: () => setTouched((t) => ({ ...t, teamId: true })),
-    password: () => setTouched((t) => ({ ...t, password: true })),
-    confirmPassword: () => setTouched((t) => ({ ...t, confirmPassword: true })),
-  };
+  // ---- フォーム：Team 版フック ----
+  const vm = useTeamAuthForm({ mode: "create" });
 
-  // 単項目＋相関（confirm）バリデーション
-  const fieldErrors: TeamRegisterFieldErrors = useMemo(() => {
-    const errs: TeamRegisterFieldErrors = {};
-    const id = values.teamId.trim();
-    const pw = values.password;
-    const cf = values.confirmPassword;
-
-    if (!id) errs.teamId = "REQUIRED";
-    else if (!USER_ID_RE.test(id)) errs.teamId = "USER_ID_FORMAT";
-
-    if (!pw) errs.password = "REQUIRED";
-    else if (pw.length < 4 || pw.length > 72) errs.password = "PASSWORD_LENGTH";
-    else if (!PASSWORD_RE.test(pw)) errs.password = "PASSWORD_CHARSET";
-
-    if (!cf) errs.confirmPassword = "REQUIRED";
-    else if (pw !== cf) errs.confirmPassword = "CONFIRM_MISMATCH";
-
-    return errs;
-  }, [values.teamId, values.password, values.confirmPassword]);
-
-  const canSubmit = Object.keys(fieldErrors).length === 0;
-
-  // ---- TEAM_ID 重複チェック（/api/team/check-team-login-id） ----
-  const [availability, setAvailability] =
-    useState<TeamRegisterAvailability>("unknown");
-  const [checking, setChecking] = useState(false);
-  const debounceRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const id = values.teamId.trim();
-    setAvailability("unknown");
-
-    // 形式不正なら問い合わせない
-    if (!id || !USER_ID_RE.test(id)) {
-      if (debounceRef.current) window.clearTimeout(debounceRef.current);
-      return;
-    }
-
-    if (debounceRef.current) window.clearTimeout(debounceRef.current);
-    debounceRef.current = window.setTimeout(async () => {
-      setChecking(true);
-      try {
-        const res = await fetch(
-          `/api/team/check-team-login-id?team_login_id=${encodeURIComponent(
-            id
-          )}`,
-          {
-            method: "GET",
-            credentials: "same-origin",
-            headers: { "cache-control": "no-store" },
-          }
-        );
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && typeof data?.available === "boolean") {
-          setAvailability(data.available ? "available" : "taken");
-        } else {
-          setAvailability("error");
-        }
-      } catch {
-        setAvailability("error");
-      } finally {
-        setChecking(false);
-      }
-    }, 400); // USER版と同等の体感になるよう軽めに
-  }, [values.teamId]);
-
-  // ---- 画面遷移制御 ----
+  // ---- 画面遷移制御（無印踏襲：canSubmit の再チェックはしない）----
   const handleToReview = () => {
     setGeneralError(null);
-    if (!canSubmit) return;
     setMode("review");
   };
 
@@ -147,10 +59,10 @@ export default function TeamRegisterModal({
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({
-          team_login_id: values.teamId.trim(),
-          password: values.password,
-          contact: values.contact || null,
-          team_name: values.teamName || null,
+          team_login_id: vm.values.teamId.trim(),
+          password: vm.values.password,
+          contact: vm.values.contact || null,
+          team_name: vm.values.teamName || null,
         }),
       });
 
@@ -172,16 +84,17 @@ export default function TeamRegisterModal({
       }
 
       const data = await res.json(); // { ok:true, team_id, team_login_id }
-      setProgressMessage("登録が完了しました。タブを切り替えています…");
+      setProgressMessage("登録が完了しました。OKでチーム画面に切り替えます。");
       setProgressStatus("done");
 
-      // A案：即タブ内切替（暫定データ）
-      onRegistered?.({
-        team_id: data?.team_id ?? values.teamId.trim(),
-        team_name: values.teamName || null,
+      // ✅ 無印踏襲：成功直後に閉じず、OK押下で後続（親へ通知→閉じる）
+      setAfterOk({
+        kind: "registered",
+        payload: {
+          team_id: data?.team_id ?? vm.values.teamId.trim(),
+          team_name: vm.values.teamName || null,
+        },
       });
-
-      onClose();
     } catch {
       setGeneralError("ネットワークエラーが発生しました");
       setProgressMessage("ネットワークエラーが発生しました");
@@ -191,16 +104,15 @@ export default function TeamRegisterModal({
 
   // 入力が1つでもあれば true（touched ではなく値の有無で判定）
   const hasAnyInput =
-    !!values.teamId ||
-    !!values.password ||
-    !!values.confirmPassword ||
-    !!values.contact ||
-    !!values.teamName;
+    !!vm.values.teamId ||
+    !!vm.values.password ||
+    !!vm.values.confirmPassword ||
+    !!vm.values.contact ||
+    !!vm.values.teamName;
 
   const handleCancelFromForm = () => {
     if (hasAnyInput) {
-      // USER版は確認ダイアログ別モーダルだが、PhaseAは最小：そのまま閉じるか、必要ならDialog接続可
-      onClose();
+      setShowCancelConfirm(true); // 無印と同じく確認を挟む
     } else {
       onClose();
     }
@@ -211,16 +123,16 @@ export default function TeamRegisterModal({
       {mode === "form" && (
         <div className="w-full max-w-md rounded-lg bg-white p-6 shadow">
           <TeamRegisterFormCard
-            values={values}
-            setters={setters}
-            fieldErrors={fieldErrors}
-            availability={availability}
-            checking={checking}
-            canSubmit={canSubmit && availability !== "taken"}
+            values={vm.values}
+            setters={vm.setters}
+            fieldErrors={vm.fieldErrors}
+            availability={vm.availability}
+            checking={vm.checking}
+            canSubmit={vm.canSubmit}
             onCancel={handleCancelFromForm}
             onSubmit={handleToReview}
-            touched={touched}
-            touch={touch}
+            touched={vm.touched}
+            touch={vm.touch}
           />
           {generalError && (
             <p
@@ -236,21 +148,54 @@ export default function TeamRegisterModal({
       {mode === "review" && (
         <div className="w-full max-w-md rounded-lg bg-white p-6 shadow">
           <TeamRegisterReviewDialog
-            values={values}
+            values={vm.values}
             onBack={() => setMode("form")}
             onConfirm={doRegister}
           />
         </div>
       )}
 
+      {/* キャンセル確認ダイアログ（無印踏襲） */}
+      <Dialog
+        open={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        variant="confirm"
+        tone="default"
+        title="入力内容を破棄して閉じますか？"
+        message="フォームへの入力内容は失われます。"
+        cancelLabel="戻る"
+        confirmLabel="閉じる"
+        onConfirm={() => {
+          setShowCancelConfirm(false);
+          onClose();
+        }}
+      />
+
+      {/* 進捗・完了・エラー用の共通ダイアログ（OKゲート） */}
       <ProgressDialog
         open={progressOpen}
         status={progressStatus}
         message={progressMessage}
-        actions={progressStatus === "processing" ? "none" : undefined}
         onClose={() => {
+          // error のクローズ
           if (progressStatus === "error") setProgressOpen(false);
         }}
+        onOk={() => {
+          // ✅ OK押下時：親へ通知 → モーダルを閉じる
+          if (afterOk?.kind === "registered") {
+            onRegistered?.(afterOk.payload);
+          }
+          setAfterOk(null);
+          setProgressOpen(false);
+          onClose();
+        }}
+        onRetry={() => {
+          // 再試行
+          doRegister();
+        }}
+        okLabel="OK"
+        retryLabel="再試行"
+        closeLabel="閉じる"
       />
     </>
   );
