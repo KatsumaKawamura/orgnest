@@ -143,11 +143,7 @@ export default function MyScheduleList({
   const cancelLabel = confirmKind === "autoAdjust" ? "キャンセル" : "戻る";
 
   if (!items.length) {
-    return (
-      <p className="text-sm text-gray-500">
-        まだ予定がありません。右上の「予定を追加」から作成してください。
-      </p>
-    );
+    return null;
   }
 
   return (
