@@ -24,7 +24,6 @@ export default function Container({
 
   const [activeTab, setActiveTab] = useState<TabKey>("myschedule");
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
 
   // ★ 親SSOT: 選択中の日付
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -48,8 +47,6 @@ export default function Container({
       <Header
         dateLabel={formattedDateWithBrackets}
         userName={user.user_name || user.login_id}
-        showDropdown={showDropdown}
-        setShowDropdown={setShowDropdown}
         onEditAccount={() => setShowSettingsModal(true)}
         onLogout={handleLogout}
       />
