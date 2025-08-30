@@ -1,5 +1,5 @@
 // lib/validators/auth.ts
-export const USER_ID_RE = /^[a-z_]{1,32}$/; // 小文字英字 + '_' のみ
+export const USER_ID_RE = /^[a-z0-9_]{1,32}$/; // 小文字英字 + '_' のみ
 export const PASSWORD_RE = /^[\x21-\x7E]+$/; // 可視ASCII（スペース不可）
 
 export type ErrorCode =

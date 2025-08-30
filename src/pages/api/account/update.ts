@@ -11,7 +11,7 @@ const supabase = createClient(
 );
 
 // 小文字英字と _ のみ 1〜32 文字
-const LOGIN_ID_RE = /^[a-z_]{1,32}$/;
+const LOGIN_ID_RE = /^[a-z0-9_]{1,32}$/;
 // パスワード最小長（必要に応じて強化）
 const PASSWORD_MIN = 4;
 

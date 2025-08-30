@@ -11,7 +11,7 @@ const supabase = createClient(
 );
 
 // 無印準拠
-const LOGIN_ID_RE = /^[a-z_]{1,32}$/;
+const LOGIN_ID_RE = /^[a-z0-9_]{1,32}$/;
 const PASSWORD_MIN = 4;
 
 export default async function handler(

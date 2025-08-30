@@ -12,7 +12,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
-const LOGIN_ID_RE = /^[a-z_]{1,32}$/;
+const LOGIN_ID_RE = /^[a-z0-9_]{1,32}$/;
 const PASSWORD_RE = /^[\x21-\x7E]+$/;
 const isProd = process.env.NODE_ENV === "production";
 const TEN_YEARS_SEC = 60 * 60 * 24 * 365 * 10;

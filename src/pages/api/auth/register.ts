@@ -11,7 +11,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY as string
 );
 
-const LOGIN_ID_RE = /^[a-z_]{1,32}$/;
+const LOGIN_ID_RE = /^[a-z0-9_]{1,32}$/;
 const PASSWORD_RE = /^[\x21-\x7E]+$/; // 可視ASCII（スペース不可）
 const isProd = process.env.NODE_ENV === "production"; // ★追加
 

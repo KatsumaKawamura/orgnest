@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createClient } from "@supabase/supabase-js";
 
-const LOGIN_ID_RE = /^[a-z_]{1,32}$/;
+const LOGIN_ID_RE = /^[a-z0-9_]{1,32}$/;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
