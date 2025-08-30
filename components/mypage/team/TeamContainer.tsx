@@ -209,17 +209,14 @@ export default function TeamContainer() {
   }
 
   // 認証済みビュー
-  const displayTeamName = team?.team_name ?? team?.team_id ?? "Team";
+  const displayTeamName = team?.team_name ?? team?.team_login_id ?? "Team";
 
   return (
     <div className="p-4">
       {/* ヘッダー：左側はタイトル、右側は（ユーザーと同形式の）チーム名＋ギア＋ドロップダウン */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between text-gray-800">
         <div>
-          <h2 className="text-xl font-semibold">{displayTeamName}</h2>
-          <p className="text-xs text-gray-500">
-            {team?.team_login_id ? `@${team.team_login_id}` : ""}
-          </p>
+          <h2 className="text-xl font-semibold">Schedule</h2>
         </div>
 
         {/* ▼ 右側：ユーザーと同形式（名前 + ギア） */}
@@ -247,8 +244,8 @@ export default function TeamContainer() {
           {/* ConfirmPopover（Dropdown は閉じている想定） */}
           <ConfirmPopover
             open={showConfirmPopover}
-            onClose={handleCancelLogout} // Esc/外クリック/キャンセル
-            onConfirm={handleConfirmLogout} // OK
+            onClose={handleCancelLogout}
+            onConfirm={handleConfirmLogout}
             message="ログアウトしますか？"
             confirmLabel="OK"
             cancelLabel="キャンセル"
