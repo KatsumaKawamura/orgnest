@@ -34,7 +34,9 @@ export default async function handler(
     }
 
     const raw = decodeURIComponent(m[1]);
-    const secret = process.env.TEAM_JWT_SECRET || process.env.JWT_SECRET;
+
+    // ★ フォールバック除去：TEAM_JWT_SECRET のみを使用
+    const secret = process.env.TEAM_JWT_SECRET;
     if (!secret) {
       return res
         .status(500)
