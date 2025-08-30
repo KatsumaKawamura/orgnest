@@ -106,8 +106,7 @@ export default async function handler(
 
     const token = jwt.sign(
       { sub: user.user_id, login_id: user.login_id },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      process.env.JWT_SECRET
     );
 
     res.setHeader(
@@ -117,7 +116,7 @@ export default async function handler(
         secure: isProd,
         sameSite: "lax",
         path: "/",
-        maxAge: 60 * 60 * 24 * 7,
+        maxAge: 60 * 60 * 24 * 365 * 10,
       })
     );
 

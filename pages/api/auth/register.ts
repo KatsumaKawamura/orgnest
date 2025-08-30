@@ -85,9 +85,7 @@ export default async function handler(
     if (!secret) {
       return res.status(500).json({ error: "INTERNAL_ERROR" });
     }
-    const token = jwt.sign({ sub: user_id, login_id }, secret, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign({ sub: user_id, login_id }, secret);
 
     res.setHeader(
       "Set-Cookie",
@@ -96,7 +94,7 @@ export default async function handler(
         secure: isProd,
         sameSite: "lax",
         path: "/",
-        maxAge: 60 * 60 * 24 * 7,
+        maxAge: 60 * 60 * 24 * 365 * 10,
       })
     );
 
