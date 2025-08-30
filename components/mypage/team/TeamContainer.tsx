@@ -5,11 +5,7 @@ import { useEffect, useState } from "react";
 import TeamLanding from "@/components/mypage/team/TeamLanding";
 import TeamLoginModal from "@/components/teamauth/TeamLoginModal";
 import TeamRegisterModal from "@/components/teamauth/TeamRegisterModal";
-import Button from "@/components/common/Button";
-import { Settings } from "lucide-react";
-import AccountMenuDropdown from "@/components/mypage/AccountMenuDropdown";
-import ConfirmPopover from "@/components/common/ConfirmPopover";
-import useDropdownWithConfirm from "@/hooks/dropdown/useDropdownWithConfirm";
+import GearMenu from "@/components/common/GearMenu";
 
 type TeamAuthStatus = "loading" | "unauthenticated" | "authenticated";
 
@@ -79,18 +75,6 @@ export default function TeamContainer() {
     }
   };
 
-  // ▼ ドロップダウン／確認ポップオーバー制御（現行挙動をフックに集約・挙動は不変）
-  const {
-    showDropdown,
-    showConfirmPopover,
-    menuRef,
-    logoutBtnRef,
-    handleGearClick,
-    handleRequestLogoutConfirm,
-    handleConfirm,
-    handleCancel,
-  } = useDropdownWithConfirm({ onConfirm: handleLogout });
-
   if (status === "loading") {
     return <div className="p-4" />; // 何も描画しない
   }
@@ -120,7 +104,7 @@ export default function TeamContainer() {
 
         {/* Register */}
         {showTeamRegister && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
+          <div className="fixed inset-0 z-[1000] flex items-center justify中心 bg-black/40">
             <TeamRegisterModal
               onClose={() => setShowTeamRegister(false)}
               onRegistered={(t) => {
@@ -146,45 +130,15 @@ export default function TeamContainer() {
           <h2 className="text-xl font-semibold">Schedule</h2>
         </div>
 
-        {/* ▼ 右側：ユーザーと同形式（名前 + ギア） */}
-        <div className="relative" ref={menuRef}>
-          <div className="flex items-center space-x-2">
-            <span className="text-base">{displayTeamName}</span>
-            <Button variant="icon" size="sm" onClick={handleGearClick}>
-              <Settings className="w-5 h-5" />
-            </Button>
-          </div>
-
-          {/* Dropdown */}
-          {showDropdown && (
-            <AccountMenuDropdown
-              onEditAccount={() => {
-                // チーム設定モーダル予定地（後続フェーズで差し替え）
-                console.log("open team settings (next phase)");
-              }}
-              onRequestLogoutConfirm={handleRequestLogoutConfirm}
-              onClose={() => {
-                // 現行の「×=閉じる」相当（確認ポップオーバーではなくDropdownのみを閉じる）
-                // フック外から直接閉じる場合は setShowDropdown も公開しているが、ここは onClose を使う
-                // → 今回はハンドラに寄せるため、直接 close は不要。安全に false にしたい場合は:
-                // setShowDropdown(false);
-              }}
-              onLogoutRef={(el) => (logoutBtnRef.current = el)}
-            />
-          )}
-
-          {/* ConfirmPopover（Dropdown は閉じている想定） */}
-          <ConfirmPopover
-            open={showConfirmPopover}
-            onClose={handleCancel} // Esc/外クリック/キャンセル
-            onConfirm={handleConfirm} // OK
-            message="ログアウトしますか？"
-            confirmLabel="OK"
-            cancelLabel="キャンセル"
-            anchorClassName="absolute right-0 mt-2"
-            returnFocusEl={logoutBtnRef.current}
-          />
-        </div>
+        {/* 右側：共通 GearMenu（非制御モード） */}
+        <GearMenu
+          displayName={displayTeamName}
+          onEdit={() => {
+            // チーム設定モーダル予定地（後続フェーズで差し替え）
+            console.log("open team settings (next phase)");
+          }}
+          onConfirmLogout={handleLogout}
+        />
       </div>
 
       {/* ビューバー予定地（空） */}
