@@ -3,23 +3,18 @@
 
 import { useEffect, useRef, useState } from "react";
 
-/**
- * ドロップダウンと確認ポップオーバーの挙動を集約。
- * - 外クリックでのクローズ（Confirm中はキャンセル扱いでDropdownに戻す）
- * - Dropdown→Confirm の遅延（rAF + setTimeout, 120ms）
- * - フォーカス返却（Confirmキャンセル時に Logout ボタンへ）
- *
- * 使い方:
- * const {
- *   showDropdown, showConfirmPopover, menuRef, logoutBtnRef,
- *   handleGearClick, handleRequestLogoutConfirm, handleConfirm, handleCancel,
- * } = useDropdownWithConfirm({ onConfirm: yourConfirmHandler });
- */
-export default function useDropdownWithConfirm(opts: {
+type Opts = {
+  /** 確認OK時に実行（例: ログアウト処理） */
   onConfirm: () => void | Promise<void>;
-}) {
-  const { onConfirm } = opts;
+};
 
+/**
+ * Dropdown と ConfirmPopover の挙動を集約（非制御専用）。
+ * - 外クリックでクローズ（Confirm中はキャンセル扱いでDropdownへ戻す）
+ * - Dropdown → Confirm を rAF + setTimeout(120ms) でディレイ表示
+ * - Esc/外クリック/キャンセル時はフォーカスを Logout ボタンへ返却
+ */
+export default function useDropdownWithConfirm({ onConfirm }: Opts) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [showConfirmPopover, setShowConfirmPopover] = useState(false);
 
@@ -46,6 +41,7 @@ export default function useDropdownWithConfirm(opts: {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (!menuRef.current) return;
+
       if (!menuRef.current.contains(e.target as Node)) {
         // 開く予定の遅延が残っていたらキャンセル（“パッ”と出るのを防ぐ）
         clearOpenDelays();
@@ -118,7 +114,7 @@ export default function useDropdownWithConfirm(opts: {
     handleRequestLogoutConfirm,
     handleConfirm,
     handleCancel,
-    // 必要なら親から直接制御
+    // 外側から明示的に閉じたい時用（非制御だが一応公開）
     setShowDropdown,
   };
 }
