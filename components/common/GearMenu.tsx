@@ -6,7 +6,6 @@ import Button from "@/components/common/Button";
 import AccountMenuDropdown from "@/components/mypage/AccountMenuDropdown";
 import ConfirmPopover from "@/components/common/ConfirmPopover";
 import useDropdownWithConfirm from "@/hooks/dropdown/useDropdownWithConfirm";
-import type { Dispatch, SetStateAction } from "react";
 
 type GearMenuProps = {
   /** 右上に表示する名前（ユーザー名/チーム名など） */
@@ -15,18 +14,12 @@ type GearMenuProps = {
   onEdit: () => void;
   /** 確認OK時に実行される処理（ログアウトなど） */
   onConfirmLogout: () => void;
-
-  /** 任意：Header 互換の“制御モード”用。未指定なら非制御で動作 */
-  showDropdown?: boolean;
-  setShowDropdown?: Dispatch<SetStateAction<boolean>>;
 };
 
 export default function GearMenu({
   displayName,
   onEdit,
   onConfirmLogout,
-  showDropdown: controlledShowDropdown,
-  setShowDropdown: setControlledShowDropdown,
 }: GearMenuProps) {
   const {
     showDropdown,
@@ -40,8 +33,7 @@ export default function GearMenu({
     setShowDropdown,
   } = useDropdownWithConfirm({
     onConfirm: onConfirmLogout,
-    controlledShowDropdown,
-    setControlledShowDropdown,
+    // 非制御モード（controlled系は渡さない）
   });
 
   return (
