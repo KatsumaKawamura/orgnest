@@ -1,7 +1,7 @@
 // components/mypage/team/TeamContainer.tsx
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import TeamLanding from "@/components/mypage/team/TeamLanding";
 import TeamLoginModal from "@/components/teamauth/TeamLoginModal";
 import TeamRegisterModal from "@/components/teamauth/TeamRegisterModal";
@@ -9,6 +9,7 @@ import Button from "@/components/common/Button";
 import { Settings } from "lucide-react";
 import AccountMenuDropdown from "@/components/mypage/AccountMenuDropdown";
 import ConfirmPopover from "@/components/common/ConfirmPopover";
+import useDropdownWithConfirm from "@/hooks/dropdown/useDropdownWithConfirm";
 
 type TeamAuthStatus = "loading" | "unauthenticated" | "authenticated";
 
@@ -25,27 +26,6 @@ export default function TeamContainer() {
 
   const [showTeamLogin, setShowTeamLogin] = useState(false);
   const [showTeamRegister, setShowTeamRegister] = useState(false);
-
-  // ▼ ドロップダウン／確認ポップオーバー制御（MyPage Header と同等）
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [showConfirmPopover, setShowConfirmPopover] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const logoutBtnRef = useRef<HTMLButtonElement | null>(null);
-
-  // Popover 開くまでの遅延を管理（rAF + setTimeout）
-  const openDelayRaf = useRef<number | null>(null);
-  const openDelayTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const clearOpenDelays = () => {
-    if (openDelayRaf.current != null) {
-      cancelAnimationFrame(openDelayRaf.current);
-      openDelayRaf.current = null;
-    }
-    if (openDelayTimer.current != null) {
-      clearTimeout(openDelayTimer.current);
-      openDelayTimer.current = null;
-    }
-  };
-  useEffect(() => () => clearOpenDelays(), []);
 
   // 起動時に /api/team/me で状態復元
   useEffect(() => {
@@ -99,70 +79,17 @@ export default function TeamContainer() {
     }
   };
 
-  // 外クリックで閉じる（ConfirmPopover を優先処理）
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (!menuRef.current.contains(e.target as Node)) {
-        // 開く予定の遅延が残っていたらキャンセル
-        clearOpenDelays();
-
-        if (showConfirmPopover) {
-          // Popover 表示中の外クリックはキャンセル扱い
-          setShowConfirmPopover(false);
-          setShowDropdown(true);
-          setTimeout(() => logoutBtnRef.current?.focus(), 0);
-          return;
-        }
-        if (showDropdown) setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [showDropdown, showConfirmPopover]);
-
-  // ギアクリック
-  const handleGearClick = () => {
-    if (showConfirmPopover) {
-      setShowConfirmPopover(false);
-      clearOpenDelays();
-      setShowDropdown(!showDropdown);
-      return;
-    }
-    setShowDropdown(!showDropdown);
-  };
-
-  // ドロップダウン側から「ログアウト確認」要求
-  const handleRequestLogoutConfirm = () => {
-    // まず Dropdown を閉じる
-    setShowDropdown(false);
-
-    // 既存遅延クリア
-    clearOpenDelays();
-
-    // 1フレーム待ってから短い遅延（120ms）で Popover を開く
-    openDelayRaf.current = requestAnimationFrame(() => {
-      openDelayRaf.current = null;
-      openDelayTimer.current = setTimeout(() => {
-        setShowConfirmPopover(true);
-        openDelayTimer.current = null;
-      }, 120);
-    });
-  };
-
-  const handleConfirmLogout = async () => {
-    clearOpenDelays();
-    setShowConfirmPopover(false);
-    setShowDropdown(false);
-    await handleLogout();
-  };
-
-  const handleCancelLogout = () => {
-    clearOpenDelays();
-    setShowConfirmPopover(false);
-    setShowDropdown(true);
-    setTimeout(() => logoutBtnRef.current?.focus(), 0);
-  };
+  // ▼ ドロップダウン／確認ポップオーバー制御（現行挙動をフックに集約・挙動は不変）
+  const {
+    showDropdown,
+    showConfirmPopover,
+    menuRef,
+    logoutBtnRef,
+    handleGearClick,
+    handleRequestLogoutConfirm,
+    handleConfirm,
+    handleCancel,
+  } = useDropdownWithConfirm({ onConfirm: handleLogout });
 
   if (status === "loading") {
     return <div className="p-4" />; // 何も描画しない
@@ -236,7 +163,12 @@ export default function TeamContainer() {
                 console.log("open team settings (next phase)");
               }}
               onRequestLogoutConfirm={handleRequestLogoutConfirm}
-              onClose={() => setShowDropdown(false)}
+              onClose={() => {
+                // 現行の「×=閉じる」相当（確認ポップオーバーではなくDropdownのみを閉じる）
+                // フック外から直接閉じる場合は setShowDropdown も公開しているが、ここは onClose を使う
+                // → 今回はハンドラに寄せるため、直接 close は不要。安全に false にしたい場合は:
+                // setShowDropdown(false);
+              }}
               onLogoutRef={(el) => (logoutBtnRef.current = el)}
             />
           )}
@@ -244,8 +176,8 @@ export default function TeamContainer() {
           {/* ConfirmPopover（Dropdown は閉じている想定） */}
           <ConfirmPopover
             open={showConfirmPopover}
-            onClose={handleCancelLogout}
-            onConfirm={handleConfirmLogout}
+            onClose={handleCancel} // Esc/外クリック/キャンセル
+            onConfirm={handleConfirm} // OK
             message="ログアウトしますか？"
             confirmLabel="OK"
             cancelLabel="キャンセル"
