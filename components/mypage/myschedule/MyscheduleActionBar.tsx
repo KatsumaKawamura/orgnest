@@ -85,7 +85,11 @@ export default function MyPageActionBar({
   return (
     <div className={`flex items-center gap-2 mb-4 relative ${className}`}>
       {/* 追加ボタン（固定位置） */}
-      <Button onClick={onAdd} variant="primary" className="flex items-center ">
+      <Button
+        onClick={onAdd}
+        variant="primary"
+        className="flex items-center shrink-0 whitespace-nowrap"
+      >
         予定を追加
       </Button>
 
