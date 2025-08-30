@@ -6,6 +6,7 @@ import TeamLanding from "@/components/mypage/team/TeamLanding";
 import TeamLoginModal from "@/components/teamauth/TeamLoginModal";
 import TeamRegisterModal from "@/components/teamauth/TeamRegisterModal";
 import GearMenu from "@/components/common/GearMenu";
+import TeamSettingsModal from "@/components/teamaccount/TeamSettingsModal"; // ← 追加
 
 type TeamAuthStatus = "loading" | "unauthenticated" | "authenticated";
 
@@ -22,6 +23,7 @@ export default function TeamContainer() {
 
   const [showTeamLogin, setShowTeamLogin] = useState(false);
   const [showTeamRegister, setShowTeamRegister] = useState(false);
+  const [showTeamSettings, setShowTeamSettings] = useState(false); // ← 追加
 
   // 起動時に /api/team/me で状態復元
   useEffect(() => {
@@ -134,8 +136,7 @@ export default function TeamContainer() {
         <GearMenu
           displayName={displayTeamName}
           onEdit={() => {
-            // チーム設定モーダル予定地（後続フェーズで差し替え）
-            console.log("open team settings (next phase)");
+            setShowTeamSettings(true); // ← ここで TeamSettingsModal を開く
           }}
           onConfirmLogout={handleLogout}
         />
@@ -145,6 +146,29 @@ export default function TeamContainer() {
       <div className="rounded border p-6 text-gray-500">
         （チームビュー：準備中）
       </div>
+
+      {/* Team 設定モーダル */}
+      {showTeamSettings && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
+          <TeamSettingsModal
+            onClose={() => setShowTeamSettings(false)}
+            initial={
+              team
+                ? {
+                    team_login_id: team.team_login_id ?? "",
+                    team_name: team.team_name ?? null,
+                    contact: team.contact ?? null,
+                  }
+                : undefined
+            }
+            onUpdated={(updated) => {
+              setTeam((prev) =>
+                prev ? { ...prev, ...updated } : { team_id: "", ...updated }
+              );
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }
