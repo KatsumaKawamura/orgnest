@@ -27,21 +27,25 @@ export default function MyPageActionBar({
 }: Props) {
   const { isOpen, open, close } = useConfirmDialog();
 
-  // 既定: スロット1（選択 or 戻る）※ Trashアイコンは外す
+  // 既定: スロット1（選択 or 戻る）
   const defaultSlot1 = (
     <Button
       onClick={onToggleDeleteMode}
       variant="secondary"
-      className="flex items-center"
+      className="flex items-center w-full sm:w-auto justify-center"
     >
       {deleteMode ? "戻る" : "選択"}
     </Button>
   );
 
-  // 既定: スロット2（削除）※削除モード時のみ見える／Trashアイコンはこちらへ
+  // 既定: スロット2（削除）※削除モード時のみ見える
   const defaultSlot2Visible = (
-    <div className="relative inline-block">
-      <Button onClick={open} variant="danger" className="flex items-center">
+    <div className="relative inline-block w-full sm:w-auto">
+      <Button
+        onClick={open}
+        variant="danger"
+        className="flex items-center w-full sm:w-auto justify-center"
+      >
         <Trash2 className="w-5 h-5 mr-2" />
         削除
       </Button>
@@ -67,11 +71,14 @@ export default function MyPageActionBar({
   // 幅固定用のプレースホルダ（削除モードでない時）
   const slot2Placeholder = (
     <div
-      className="relative inline-block pointer-events-none"
+      className="relative inline-block pointer-events-none w-full sm:w-auto"
       aria-hidden="true"
     >
       <div className="invisible">
-        <Button variant="danger" className="flex items-center">
+        <Button
+          className="flex items-center w-full sm:w-auto justify-center"
+          variant="danger"
+        >
           <Trash2 className="w-5 h-5 mr-2" />
           削除
         </Button>
@@ -83,20 +90,24 @@ export default function MyPageActionBar({
     slot2 ?? (deleteMode ? defaultSlot2Visible : slot2Placeholder);
 
   return (
-    <div className={`flex items-center gap-2 mb-4 relative ${className}`}>
-      {/* 追加ボタン（固定位置） */}
-      <Button
-        onClick={onAdd}
-        variant="primary"
-        className="flex items-center shrink-0 whitespace-nowrap"
-      >
-        予定を追加
-      </Button>
+    <div
+      className={`flex flex-col sm:flex-row sm:items-center gap-2 mb-4 relative ${className}`}
+    >
+      {/* 上段：追加ボタン（スマホは幅いっぱい） */}
+      <div className="shrink-0 w-full sm:w-auto">
+        <Button
+          onClick={onAdd}
+          variant="primary"
+          className="flex items-center shrink-0 whitespace-nowrap w-full sm:w-auto justify-center"
+        >
+          予定を追加
+        </Button>
+      </div>
 
-      {/* スロット群：選択/戻る（常在）＋ 削除（モード時のみ、未時は幅固定） */}
-      <div className="flex items-center gap-2">
-        <div className="inline-flex">{slot1 ?? defaultSlot1}</div>
-        <div className="inline-flex">{slot2Node}</div>
+      {/* 下段：スマホは2カラム/各カラム内ボタンが幅いっぱい。PCは横並び */}
+      <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:ml-2">
+        <div className="w-full sm:w-auto flex">{slot1 ?? defaultSlot1}</div>
+        <div className="w-full sm:w-auto flex">{slot2Node}</div>
       </div>
     </div>
   );
