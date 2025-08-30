@@ -154,11 +154,10 @@ export default async function handler(
       }
     }
 
-    // D) TEAM セッション発行
-    const secret = process.env.TEAM_JWT_SECRET || process.env.JWT_SECRET;
+    // D) TEAM セッション発行（フォールバック除去：TEAM_JWT_SECRET を必須化）
+    const secret = process.env.TEAM_JWT_SECRET;
     if (!secret) {
-      if (isDev)
-        console.error("[team/login] Missing TEAM_JWT_SECRET/JWT_SECRET");
+      if (isDev) console.error("[team/login] Missing TEAM_JWT_SECRET");
       return res.status(500).json({ error: "INTERNAL_ERROR" });
     }
     const token = jwt.sign(
