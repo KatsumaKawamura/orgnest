@@ -3,7 +3,7 @@
 
 import { Settings } from "lucide-react";
 import Button from "@/components/common/Button";
-import AccountMenuDropdown from "@/components/common/MenuDropdown";
+import MenuDropdown from "@/components/common/MenuDropdown";
 import ConfirmPopover from "@/components/common/ConfirmPopover";
 import useDropdownWithConfirm from "@/hooks/dropdown/useDropdownWithConfirm";
 
@@ -67,15 +67,19 @@ export default function GearMenu({
 
       {/* Dropdown */}
       {showDropdown && (
-        <AccountMenuDropdown
-          onEditAccount={onEdit}
-          onRequestLogoutConfirm={handleRequestLogoutConfirm}
+        <MenuDropdown
           onClose={() => setShowDropdown(false)}
-          onLogoutRef={(el) => (logoutBtnRef.current = el)}
-          labels={{
-            edit: labels?.edit,
-            logout: labels?.logout,
-          }}
+          items={[
+            {
+              label: labels?.edit ?? "アカウント情報の変更",
+              onClick: onEdit,
+            },
+            {
+              label: labels?.logout ?? "ログアウト",
+              onClick: handleRequestLogoutConfirm,
+              refCallback: (el) => (logoutBtnRef.current = el),
+            },
+          ]}
         />
       )}
 
