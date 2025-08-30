@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { serialize } from "cookie";
+import * as cookie from "cookie";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -12,8 +13,6 @@ const supabase = createClient(
 
 const isProd = process.env.NODE_ENV === "production";
 const isDev = !isProd;
-
-// 無期限運用に近づけるため、十分に長い有効期限（10年相当）を設定
 const TEN_YEARS_SEC = 60 * 60 * 24 * 365 * 10;
 
 export default async function handler(
@@ -31,7 +30,29 @@ export default async function handler(
   }
 
   try {
-    // 1) チーム取得（列名は 'pass'）
+    // -------- A) 個人セッション 必須（user_id取得） --------
+    const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
+    const userToken = cookies.session;
+    if (!userToken) {
+      return res.status(401).json({ error: "UNAUTHORIZED_USER" });
+    }
+    const userSecret = process.env.JWT_SECRET;
+    if (!userSecret) {
+      if (isDev) console.error("[team/login] Missing JWT_SECRET");
+      return res.status(500).json({ error: "INTERNAL_ERROR" });
+    }
+    let userPayload: any;
+    try {
+      userPayload = jwt.verify(userToken, userSecret);
+    } catch {
+      return res.status(401).json({ error: "UNAUTHORIZED_USER" });
+    }
+    const user_id = String(userPayload?.sub ?? "");
+    if (!user_id) {
+      return res.status(401).json({ error: "UNAUTHORIZED_USER" });
+    }
+
+    // -------- B) チーム取得・認証 --------
     const { data: rows, error: selErr } = await supabase
       .from("teams")
       .select("team_id, team_login_id, pass")
@@ -61,20 +82,19 @@ export default async function handler(
         .json({ error: "チームIDまたはパスワードが違います" });
     }
 
-    // 2) パスワード照合
     let ok = false;
     try {
       ok = await bcrypt.compare(password, stored);
     } catch (e: any) {
       if (isDev)
         console.warn(
-          "[team/login] bcrypt.compare failed (maybe plain text), message:",
+          "[team/login] bcrypt.compare failed (maybe plain text):",
           e?.message
         );
       ok = false;
     }
 
-    // 3) 平文からの“なまけ移行”
+    // 平文からの“なまけ移行”
     if (!ok && stored === password) {
       try {
         const newHash = await bcrypt.hash(password, 12);
@@ -87,7 +107,7 @@ export default async function handler(
       } catch (e: any) {
         if (isDev) console.warn("[team/login] lazy upgrade error:", e?.message);
       }
-      ok = true; // 今回は通す
+      ok = true;
     }
 
     if (!ok) {
@@ -96,22 +116,48 @@ export default async function handler(
         .json({ error: "チームIDまたはパスワードが違います" });
     }
 
-    // 4) JWT 発行（失効なし：expiresIn を付けない）
+    // -------- C) 所属チェック＆幂等INSERT --------
+    // 既に別チーム所属なら 409、同一チーム所属なら何もしないで続行
+    const { data: current, error: curErr } = await supabase
+      .from("team_members")
+      .select("team_id")
+      .eq("user_id", user_id)
+      .limit(1);
+
+    if (curErr) {
+      if (isDev) console.error("[team/login] membership select error:", curErr);
+      return res.status(500).json({ error: "INTERNAL_ERROR" });
+    }
+
+    const already = current?.[0]?.team_id as string | undefined;
+    if (already && already !== team.team_id) {
+      return res.status(409).json({ error: "ALREADY_IN_ANOTHER_TEAM" });
+    }
+
+    if (!already) {
+      const { error: insErr } = await supabase
+        .from("team_members")
+        .insert([{ team_id: team.team_id, user_id }]);
+      if (insErr) {
+        // UNIQUE(user_id) 競合はすでに別チーム所属の可能性だが、直前で判定済み。
+        if (isDev)
+          console.error("[team/login] membership insert error:", insErr);
+        return res.status(500).json({ error: "INTERNAL_ERROR" });
+      }
+    }
+    // 以降はクッキー付与
+
+    // -------- D) TEAM セッション発行（失効なし） --------
     const secret = process.env.TEAM_JWT_SECRET || process.env.JWT_SECRET;
     if (!secret) {
       if (isDev)
         console.error("[team/login] Missing TEAM_JWT_SECRET/JWT_SECRET");
-      return res.status(500).json({
-        error: isDev
-          ? "Missing TEAM_JWT_SECRET/JWT_SECRET"
-          : "ログイン処理でエラーが発生しました",
-      });
+      return res.status(500).json({ error: "INTERNAL_ERROR" });
     }
 
     const token = jwt.sign(
       { sub: team.team_id, team_login_id: team.team_login_id },
       secret
-      // 失効を付けない（exp未設定）
     );
 
     res.setHeader(
@@ -121,7 +167,7 @@ export default async function handler(
         secure: isProd,
         sameSite: "lax",
         path: "/",
-        maxAge: TEN_YEARS_SEC, // 十分に長い
+        maxAge: TEN_YEARS_SEC,
       })
     );
 

@@ -92,7 +92,7 @@ export default function TeamLoginModal({
       aria-label="ログイン"
     >
       <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
-        ログイン
+        チームに参加する
       </h2>
 
       {/* フォーム上のエラー表示（無印踏襲） */}
@@ -141,7 +141,7 @@ export default function TeamLoginModal({
         </div>
         <div className="flex justify-center">
           <Button variant="primary" onClick={handleLogin}>
-            ログイン
+            参加
           </Button>
         </div>
       </div>
