@@ -154,7 +154,7 @@ export default function TeamContainer() {
       {/* ヘッダー：左側はタイトル、右側は（ユーザーと同形式の）チーム名＋ギア＋ドロップダウン */}
       <div className="mb-4 flex items-center justify-between text-gray-800">
         <div>
-          <h2 className="text-xl font-semibold">Schedule</h2>
+          <h2 className="text-xl font-semibold">Team Schedule</h2>
         </div>
 
         {/* 右側：共通 GearMenu（非制御モード） */}

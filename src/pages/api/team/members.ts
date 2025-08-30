@@ -64,7 +64,10 @@ export default async function handler(
       const { data: usersRows, error: usersErr } = await supabase
         .from("users")
         .select("user_id, user_name, login_id")
-        .in("user_id", userIds);
+        .in("user_id", userIds)
+        // ★ フォールバック込みで昇順ソート
+        .order("user_name", { ascending: true, nullsFirst: false })
+        .order("login_id", { ascending: true });
 
       if (usersErr) throw usersErr;
 
