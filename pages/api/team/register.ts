@@ -14,6 +14,7 @@ const supabase = createClient(
 const LOGIN_ID_RE = /^[a-z_]{1,32}$/; // USER版踏襲
 const PASSWORD_RE = /^[\x21-\x7E]+$/; // USER版踏襲
 const isProd = process.env.NODE_ENV === "production";
+const TEN_YEARS_SEC = 60 * 60 * 24 * 365 * 10;
 
 export default async function handler(
   req: NextApiRequest,
@@ -32,7 +33,7 @@ export default async function handler(
     const contact = body?.contact ?? null;
     const team_name = body?.team_name ?? null;
 
-    // 入力検証（USER版のコードと同義のエラーコードで返す）
+    // 入力検証
     if (!team_login_id || !password) {
       return res.status(400).json({ error: "INVALID_PAYLOAD" });
     }
@@ -78,14 +79,16 @@ export default async function handler(
       return res.status(500).json({ error: "INTERNAL_ERROR" });
     }
 
-    // 登録直後に TEAM のセッションでログイン
+    // 登録直後に TEAM のセッションでログイン（失効なし）
     const secret = process.env.TEAM_JWT_SECRET || process.env.JWT_SECRET;
     if (!secret) {
       return res.status(500).json({ error: "INTERNAL_ERROR" });
     }
-    const token = jwt.sign({ sub: team_id, team_login_id }, secret, {
-      expiresIn: "7d",
-    });
+    const token = jwt.sign(
+      { sub: team_id, team_login_id },
+      secret
+      // 失効を付けない（exp未設定）
+    );
 
     res.setHeader(
       "Set-Cookie",
@@ -94,7 +97,7 @@ export default async function handler(
         secure: isProd,
         sameSite: "lax",
         path: "/",
-        maxAge: 60 * 60 * 24 * 7,
+        maxAge: TEN_YEARS_SEC, // 十分に長い
       })
     );
 

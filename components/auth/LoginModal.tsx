@@ -93,7 +93,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
       <div className="space-y-4">
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            USER_ID
+            ・USER_ID
           </label>
           <Input
             value={userId}
@@ -107,7 +107,7 @@ export default function LoginModal({ onClose }: LoginModalProps) {
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            PASSWORD
+            ・PASSWORD
           </label>
           <PasswordInput
             value={password}
