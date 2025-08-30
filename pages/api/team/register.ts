@@ -48,7 +48,7 @@ export default async function handler(
       return res.status(400).json({ error: "PASSWORD_INVALID" });
     }
 
-    // A) 個人セッション 必須（作成者 user_id 取得）
+    // A) 個人セッションから user_id
     const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
     const userToken = cookies.session;
     if (!userToken) {
@@ -74,7 +74,6 @@ export default async function handler(
       .select("team_id")
       .eq("team_login_id", team_login_id)
       .limit(1);
-
     if (selErr) {
       return res.status(500).json({ error: "INTERNAL_ERROR" });
     }
@@ -82,7 +81,7 @@ export default async function handler(
       return res.status(409).json({ error: "LOGIN_ID_TAKEN" });
     }
 
-    // C) 作成者がすでに別チーム所属なら 409
+    // C) 既所属があれば一旦クリア（1:1規定）
     {
       const { data: current, error: curErr } = await supabase
         .from("team_members")
@@ -93,7 +92,13 @@ export default async function handler(
         return res.status(500).json({ error: "INTERNAL_ERROR" });
       }
       if (current && current.length > 0) {
-        return res.status(409).json({ error: "ALREADY_IN_ANOTHER_TEAM" });
+        const { error: delErr } = await supabase
+          .from("team_members")
+          .delete()
+          .eq("user_id", user_id);
+        if (delErr) {
+          return res.status(500).json({ error: "INTERNAL_ERROR" });
+        }
       }
     }
 
@@ -113,19 +118,17 @@ export default async function handler(
       return res.status(500).json({ error: "INTERNAL_ERROR" });
     }
 
-    // D) 作成者を自動参加（MVP: roleなし、幂等だがこの時点では必ず未所属）
+    // D) 作成者を自動参加
     {
       const { error: memErr } = await supabase
         .from("team_members")
         .insert([{ team_id, user_id }]);
       if (memErr) {
-        // チーム自体は作られているので、ここで落ちると中途半端。
-        // ただしMVPでは逐次でOKの合意のため、内部エラー扱い。
         return res.status(500).json({ error: "INTERNAL_ERROR" });
       }
     }
 
-    // E) TEAMセッション付与（失効なし）
+    // E) TEAMセッション付与
     const secret = process.env.TEAM_JWT_SECRET || process.env.JWT_SECRET;
     if (!secret) {
       return res.status(500).json({ error: "INTERNAL_ERROR" });

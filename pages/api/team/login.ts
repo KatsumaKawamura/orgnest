@@ -30,7 +30,7 @@ export default async function handler(
   }
 
   try {
-    // -------- A) 個人セッション 必須（user_id取得） --------
+    // A) 個人セッション 必須（user_id取得）
     const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
     const userToken = cookies.session;
     if (!userToken) {
@@ -52,7 +52,7 @@ export default async function handler(
       return res.status(401).json({ error: "UNAUTHORIZED_USER" });
     }
 
-    // -------- B) チーム取得・認証 --------
+    // B) チーム取得・認証
     const { data: rows, error: selErr } = await supabase
       .from("teams")
       .select("team_id, team_login_id, pass")
@@ -116,8 +116,7 @@ export default async function handler(
         .json({ error: "チームIDまたはパスワードが違います" });
     }
 
-    // -------- C) 所属チェック＆幂等INSERT --------
-    // 既に別チーム所属なら 409、同一チーム所属なら何もしないで続行
+    // C) 所属の正規化（1:1規定）
     const { data: current, error: curErr } = await supabase
       .from("team_members")
       .select("team_id")
@@ -130,31 +129,38 @@ export default async function handler(
     }
 
     const already = current?.[0]?.team_id as string | undefined;
+
     if (already && already !== team.team_id) {
-      return res.status(409).json({ error: "ALREADY_IN_ANOTHER_TEAM" });
+      // 既属が別チーム → 一旦クリア（1:1規定）
+      const { error: delErr } = await supabase
+        .from("team_members")
+        .delete()
+        .eq("user_id", user_id);
+      if (delErr) {
+        if (isDev)
+          console.error("[team/login] membership delete error:", delErr);
+        return res.status(500).json({ error: "INTERNAL_ERROR" });
+      }
     }
 
-    if (!already) {
+    if (!already || already !== team.team_id) {
       const { error: insErr } = await supabase
         .from("team_members")
         .insert([{ team_id: team.team_id, user_id }]);
       if (insErr) {
-        // UNIQUE(user_id) 競合はすでに別チーム所属の可能性だが、直前で判定済み。
         if (isDev)
           console.error("[team/login] membership insert error:", insErr);
         return res.status(500).json({ error: "INTERNAL_ERROR" });
       }
     }
-    // 以降はクッキー付与
 
-    // -------- D) TEAM セッション発行（失効なし） --------
+    // D) TEAM セッション発行
     const secret = process.env.TEAM_JWT_SECRET || process.env.JWT_SECRET;
     if (!secret) {
       if (isDev)
         console.error("[team/login] Missing TEAM_JWT_SECRET/JWT_SECRET");
       return res.status(500).json({ error: "INTERNAL_ERROR" });
     }
-
     const token = jwt.sign(
       { sub: team.team_id, team_login_id: team.team_login_id },
       secret
