@@ -159,7 +159,7 @@ export function useTeamAuthForm({ mode, initial, debounceMs = 450 }: Options) {
     if (skipCheck) {
       if (timerRef.current) window.clearTimeout(timerRef.current);
       setChecking(false);
-      setAvailability("available");
+      setAvailability("unknown");
       return;
     }
 

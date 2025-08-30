@@ -1,4 +1,4 @@
-// components/common/GearMenu.tsx
+// @/components/common/GearMenu.tsx
 "use client";
 
 import { Settings } from "lucide-react";
@@ -7,6 +7,16 @@ import AccountMenuDropdown from "@/components/mypage/AccountMenuDropdown";
 import ConfirmPopover from "@/components/common/ConfirmPopover";
 import useDropdownWithConfirm from "@/hooks/dropdown/useDropdownWithConfirm";
 
+type GearMenuLabels = Partial<{
+  // Dropdown 側
+  edit: string; // 例: "チーム設定"
+  logout: string; // 例: "退出"
+  // 確認ポップオーバ側
+  confirmMessage: string; // 例: "退出しますか？"
+  confirmLabel: string; // 例: "OK"
+  cancelLabel: string; // 例: "キャンセル"
+}>;
+
 type GearMenuProps = {
   /** 右上に表示する名前（ユーザー名/チーム名など） */
   displayName: string;
@@ -14,12 +24,15 @@ type GearMenuProps = {
   onEdit: () => void;
   /** 確認OK時に実行される処理（ログアウトなど） */
   onConfirmLogout: () => void;
+  /** 文言差し替え（省略時は無印既定文言） */
+  labels?: GearMenuLabels;
 };
 
 export default function GearMenu({
   displayName,
   onEdit,
   onConfirmLogout,
+  labels,
 }: GearMenuProps) {
   const {
     showDropdown,
@@ -33,8 +46,15 @@ export default function GearMenu({
     setShowDropdown,
   } = useDropdownWithConfirm({
     onConfirm: onConfirmLogout,
-    // 非制御モード（controlled系は渡さない）
   });
+
+  // 既定文言（無印準拠）
+  const defaultConfirm = {
+    confirmMessage: "ログアウトしますか？",
+    confirmLabel: "OK",
+    cancelLabel: "キャンセル",
+  };
+  const merged = { ...defaultConfirm, ...labels };
 
   return (
     <div className="relative" ref={menuRef}>
@@ -52,17 +72,21 @@ export default function GearMenu({
           onRequestLogoutConfirm={handleRequestLogoutConfirm}
           onClose={() => setShowDropdown(false)}
           onLogoutRef={(el) => (logoutBtnRef.current = el)}
+          labels={{
+            edit: labels?.edit,
+            logout: labels?.logout,
+          }}
         />
       )}
 
       {/* ConfirmPopover（Dropdown は閉じている想定） */}
       <ConfirmPopover
         open={showConfirmPopover}
-        onClose={handleCancel} // Esc/外クリック/キャンセル
-        onConfirm={handleConfirm} // OK
-        message="ログアウトしますか？"
-        confirmLabel="OK"
-        cancelLabel="キャンセル"
+        onClose={handleCancel}
+        onConfirm={handleConfirm}
+        message={merged.confirmMessage}
+        confirmLabel={merged.confirmLabel}
+        cancelLabel={merged.cancelLabel}
         anchorClassName="absolute right-0 mt-2"
         returnFocusEl={logoutBtnRef.current}
       />

@@ -3,11 +3,17 @@
 
 import { useEffect, useState } from "react";
 
+type Labels = Partial<{
+  edit: string; // 既定: "アカウント情報の変更"
+  logout: string; // 既定: "ログアウト"
+}>;
+
 interface Props {
   onEditAccount: () => void;
   onRequestLogoutConfirm: () => void; // ポップオーバー表示のトリガー
   onClose: () => void; // Dropdown を閉じる
   onLogoutRef?: (el: HTMLButtonElement | null) => void; // フォーカス返却用
+  labels?: Labels; // ← 追加（省略時は既定文言）
 }
 
 export default function AccountMenuDropdown({
@@ -15,6 +21,7 @@ export default function AccountMenuDropdown({
   onRequestLogoutConfirm,
   onClose,
   onLogoutRef,
+  labels,
 }: Props) {
   const [entered, setEntered] = useState(false);
 
@@ -22,6 +29,9 @@ export default function AccountMenuDropdown({
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
+
+  const textEdit = labels?.edit ?? "アカウント情報の変更";
+  const textLogout = labels?.logout ?? "ログアウト";
 
   return (
     <div
@@ -41,7 +51,7 @@ export default function AccountMenuDropdown({
           onEditAccount(); // その後に設定モーダルへ
         }}
       >
-        アカウント情報の変更
+        {textEdit}
       </button>
 
       <button
@@ -52,7 +62,7 @@ export default function AccountMenuDropdown({
           onRequestLogoutConfirm(); // 次に Popover を開く
         }}
       >
-        ログアウト
+        {textLogout}
       </button>
     </div>
   );

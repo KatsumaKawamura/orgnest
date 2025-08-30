@@ -135,10 +135,15 @@ export default function TeamContainer() {
         {/* 右側：共通 GearMenu（非制御モード） */}
         <GearMenu
           displayName={displayTeamName}
-          onEdit={() => {
-            setShowTeamSettings(true); // ← ここで TeamSettingsModal を開く
-          }}
+          onEdit={() => setShowTeamSettings(true)}
           onConfirmLogout={handleLogout}
+          labels={{
+            edit: "チーム情報の変更",
+            logout: "退出",
+            confirmMessage: "退出しますか？",
+            confirmLabel: "OK",
+            cancelLabel: "キャンセル",
+          }}
         />
       </div>
 
