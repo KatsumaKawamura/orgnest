@@ -26,14 +26,16 @@ export default function TimelineTimeRail({
 
   return (
     <div
-      className="relative border-r bg-transparent"
-      style={{ width: TIME_LABEL_WIDTH, height: totalHeight }}
+      className={`relative border-r bg-transparent w-[32px] sm:w-[${TIME_LABEL_WIDTH}px]`}
+      style={{ height: totalHeight }}
     >
       {hours.map((h) => {
         const y = (h * 60 - startMin) * pxPerMinute;
         return (
           <div key={h} className="absolute left-0 right-0" style={{ top: y }}>
-            <div className="pr-2 text-sm text-gray-700 text-right">{h}:00</div>
+            <div className="pr-1 sm:pr-2 text-xs sm:text-sm text-gray-700 text-left">
+              {h}:00
+            </div>
           </div>
         );
       })}
