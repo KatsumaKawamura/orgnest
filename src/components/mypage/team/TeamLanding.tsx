@@ -11,7 +11,7 @@ type Props = {
 export default function TeamLanding({ onCreateClick, onJoinClick }: Props) {
   return (
     <section className="w-full text-gray-800">
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-row gap-3 sm:flex-row">
         <Button variant="primary" onClick={onJoinClick}>
           チーム参加
         </Button>
