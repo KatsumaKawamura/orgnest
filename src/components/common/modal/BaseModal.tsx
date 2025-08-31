@@ -1,34 +1,25 @@
 // @/components/common/modal/BaseModal.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 type DivProps = React.HTMLAttributes<HTMLDivElement>;
 
 export type BaseModalProps = {
-  /** 親が完全制御する開閉フラグ */
   open: boolean;
-  /** 親が明示的に閉じるためのハンドラ（Esc/外クリック有効時にも使用） */
   onClose: () => void;
-  /** モーダル内容（見た目は親が定義） */
   children: React.ReactNode;
-
-  /** 既存デザインを壊さないための受け皿（クラスやstyleを親から付与） */
-  backdropProps?: DivProps; // 画面全体を覆う要素（固定配置などは親が指定）
-  containerProps?: DivProps; // 子要素を入れるコンテナ（位置やサイズは親で指定）
-
-  /** ポータル挿入先。未指定なら document.body */
+  backdropProps?: DivProps;
+  containerProps?: DivProps;
   portalTargetId?: string;
-
-  /** オプトイン動作：既定は両方とも無効（false） */
-  /** Esc キーで閉じる */
   closeOnEsc?: boolean;
-  /** Backdrop（外側）クリックで閉じる */
   closeOnBackdrop?: boolean;
+
+  /** モバイル対策：trueでVisualViewportに追従（既定: true） */
+  adaptToKeyboard?: boolean;
 };
 
-/* ===== スクロールロック（複数モーダル対応） ===== */
 let lockCount = 0;
 let savedStyles: {
   htmlOverflow?: string;
@@ -59,9 +50,11 @@ function lockScroll() {
 
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
+    // 画面外のオーバースクロールを抑制
     (html.style as any).overscrollBehavior = "none";
     (body.style as any).overscrollBehavior = "none";
-    body.style.touchAction = "none";
+    // ← ここは "none" だとモーダル内のスクロール自体は許可される（子要素に依存）
+    body.style.touchAction = ""; // ★スマホでの“キーボード閉じジェスチャ”を殺さないよう解除
     if (scrollbarWidth > 0) {
       body.style.paddingRight = `${scrollbarWidth}px`;
     }
@@ -89,7 +82,6 @@ function unlockScroll() {
   }
 }
 
-/* ===== BaseModal（Esc/外クリックはデフォルト無効。必要なときだけ有効化） ===== */
 export default function BaseModal({
   open,
   onClose,
@@ -99,11 +91,14 @@ export default function BaseModal({
   portalTargetId,
   closeOnEsc = false,
   closeOnBackdrop = false,
+  adaptToKeyboard = true,
 }: BaseModalProps) {
-  // ← ここを state 方式に変更
   const [mounted, setMounted] = useState(false);
 
-  // クライアントマウント判定（SSR回避）
+  // VisualViewport 差分から“キーボード分の食い込み”を算出
+  const [kbOffset, setKbOffset] = useState(0);
+  const vvRef = useRef<VisualViewport | null>(null);
+
   useEffect(() => {
     setMounted(true);
     return () => setMounted(false);
@@ -124,6 +119,8 @@ export default function BaseModal({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
+        // 入力中ならキーボードを先に閉じる
+        (document.activeElement as HTMLElement | null)?.blur?.();
         onClose();
       }
     };
@@ -131,6 +128,46 @@ export default function BaseModal({
     return () =>
       window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [open, closeOnEsc, onClose]);
+
+  // モバイル：キーボード出現に追従
+  useEffect(() => {
+    if (!open || !adaptToKeyboard) return;
+    const vv = window.visualViewport || null;
+    vvRef.current = vv;
+
+    const update = () => {
+      if (!vv) return;
+      const heightLoss = Math.max(
+        0,
+        window.innerHeight - Math.round(vv.height)
+      );
+      setKbOffset(heightLoss);
+      // 入力要素が隠れていたら中央に見えるようスクロール
+      const ae = document.activeElement as HTMLElement | null;
+      if (
+        ae &&
+        (ae.tagName === "INPUT" ||
+          ae.tagName === "TEXTAREA" ||
+          ae.getAttribute("contenteditable") === "true")
+      ) {
+        // レイアウト確定後に実行
+        requestAnimationFrame(() => {
+          ae.scrollIntoView({ block: "center", inline: "nearest" });
+        });
+      }
+    };
+
+    update();
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    window.addEventListener("orientationchange", update);
+
+    return () => {
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+      window.removeEventListener("orientationchange", update);
+    };
+  }, [open, adaptToKeyboard]);
 
   if (!mounted || !open) return null;
 
@@ -141,39 +178,53 @@ export default function BaseModal({
 
   if (!target) return null;
 
-  // モーション用クラスを自動付与：
-  // - overlay: bm-overlay（フェード）
-  // - container: bm-container（直下の子に入場アニメ）
   const backdropClass = ["bm-overlay", backdropProps?.className]
     .filter(Boolean)
     .join(" ");
-  const containerClass = ["bm-container", containerProps?.className]
+  const containerClass = [
+    "bm-container",
+    "overflow-auto",
+    containerProps?.className,
+  ]
     .filter(Boolean)
     .join(" ");
+
+  // “キーボード分”を差し引いた高さでモーダルを表示
+  // 100dvh / 100svh は iOS/Android の動的ビューポートに追従
+  const containerStyleExtra: React.CSSProperties = {
+    maxHeight: `calc(100dvh - ${kbOffset}px)`,
+    // iOS のセーフエリア下部
+    paddingBottom: `max(${kbOffset}px, env(safe-area-inset-bottom, 0px))`,
+    // 一応の保険（外から fixed 等でサイズ指定されても中はスクロール可能に）
+    WebkitOverflowScrolling: "touch",
+  };
 
   return createPortal(
     <div
       {...backdropProps}
       className={backdropClass}
-      // イベント捕捉のため position/inset は最低限確保（クラス指定があればそちらが優先）
       style={{ position: "fixed", inset: 0, ...(backdropProps?.style ?? {}) }}
-      onClick={
-        closeOnBackdrop
-          ? (e) => {
-              // Backdrop 自身へのクリックのみ反応
-              if (e.target === e.currentTarget) onClose();
-              backdropProps?.onClick?.(e);
-            }
-          : backdropProps?.onClick
-      }
+      onClick={(e) => {
+        // まずフォーカス解除でキーボードを閉じる
+        (document.activeElement as HTMLElement | null)?.blur?.();
+
+        if (closeOnBackdrop) {
+          // Backdrop 自身へのクリックのみ反応
+          if (e.target === e.currentTarget) onClose();
+        }
+        backdropProps?.onClick?.(e);
+      }}
     >
       <div
         {...containerProps}
         className={containerClass}
-        // クリックがBackdropへバブリングして閉じないように
         onClick={(e) => {
           containerProps?.onClick?.(e);
           e.stopPropagation();
+        }}
+        style={{
+          ...(containerProps?.style ?? {}),
+          ...containerStyleExtra,
         }}
       >
         {children}
