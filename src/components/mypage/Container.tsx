@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BaseModal from "@/components/common/modal/BaseModal";
+import FormModal from "@/components/common/modal/FormModal"; // ← 差し替え
 import SettingsModal from "@/components/account/SettingsModal";
 import Header from "@/components/mypage/Header";
 import Tabs, { TabKey } from "@/components/mypage/Tabs";
@@ -55,12 +55,10 @@ export default function Container({
 
       {activeTab === "myschedule" && <MyScheduleContainer />}
       {activeTab === "team" && <TeamContainer />}
-
-      {/* ← ここだけ差し替え（以前のプレースホルダを削除） */}
       {activeTab === "project" && <ProjectListContainer />}
 
       {showSettingsModal && (
-        <BaseModal
+        <FormModal
           open={showSettingsModal}
           onClose={() => setShowSettingsModal(false)}
           backdropProps={{ className: "fixed inset-0 z-[1000] bg-black/50" }}
@@ -78,7 +76,7 @@ export default function Container({
             onUpdated={(u) => setUser((prev: any) => ({ ...prev, ...u }))}
             onClose={() => setShowSettingsModal(false)}
           />
-        </BaseModal>
+        </FormModal>
       )}
     </main>
   );

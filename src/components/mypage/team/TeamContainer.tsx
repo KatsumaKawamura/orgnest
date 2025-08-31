@@ -9,10 +9,10 @@ import GearMenu from "@/components/common/GearMenu";
 import TeamSettingsModal from "@/components/teamaccount/TeamSettingsModal";
 import TimelineView from "@/components/mypage/team/timeline/TimelineView";
 
-// ✨ 追加：メンバー専用フックを利用
 import { useTeamMembers } from "@/components/mypage/team/timeline/useTeamMembers";
-// ✨ スケジュール専用にしたフックを利用
 import { useTeamTimelineData } from "@/components/mypage/team/timeline/useTeamTimelineData";
+
+import FormModal from "@/components/common/modal/FormModal"; // ← 追加（BaseModalの代わりに使用）
 
 type TeamAuthStatus = "loading" | "unauthenticated" | "authenticated";
 
@@ -69,15 +69,14 @@ export default function TeamContainer() {
     };
   }, []);
 
-  // ★ hooks は常に同じ順序で呼ぶ：enabled フラグで内部動作を切替
-  // メンバーは専用API（/api/team/members）から常に取得 → 予定が空でも列を確保
+  // メンバーは専用API（/api/team/members）から常に取得
   const {
     members,
     loading: membersLoading,
     error: membersError,
   } = useTeamMembers(status === "authenticated");
 
-  // スケジュールは既存APIから取得（スケジュール専用）
+  // スケジュールは既存APIから取得
   const {
     schedules,
     loading: schedulesLoading,
@@ -99,7 +98,7 @@ export default function TeamContainer() {
   };
 
   if (status === "loading") {
-    return <div className="p-4" />; // 何も描画しない（フェード等があれば差し替え可）
+    return <div className="p-4" />;
   }
 
   if (status === "unauthenticated") {
@@ -111,33 +110,43 @@ export default function TeamContainer() {
           onJoinClick={() => setShowTeamLogin(true)}
         />
 
-        {/* Login */}
-        {showTeamLogin && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
-            <TeamLoginModal
-              onClose={() => setShowTeamLogin(false)}
-              onLoggedIn={(t) => {
-                setTeam(t);
-                setStatus("authenticated");
-                setShowTeamLogin(false);
-              }}
-            />
-          </div>
-        )}
+        {/* Login（FormModal に置き換え） */}
+        <FormModal
+          open={showTeamLogin}
+          onClose={() => setShowTeamLogin(false)}
+          backdropProps={{ className: "fixed inset-0 z-[1000] bg-black/40" }}
+          containerProps={{
+            className: "fixed inset-0 grid place-items-center p-4",
+          }}
+        >
+          <TeamLoginModal
+            onClose={() => setShowTeamLogin(false)}
+            onLoggedIn={(t) => {
+              setTeam(t);
+              setStatus("authenticated");
+              setShowTeamLogin(false);
+            }}
+          />
+        </FormModal>
 
-        {/* Register */}
-        {showTeamRegister && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
-            <TeamRegisterModal
-              onClose={() => setShowTeamRegister(false)}
-              onRegistered={(t) => {
-                setTeam(t);
-                setStatus("authenticated");
-                setShowTeamRegister(false);
-              }}
-            />
-          </div>
-        )}
+        {/* Register（FormModal に置き換え） */}
+        <FormModal
+          open={showTeamRegister}
+          onClose={() => setShowTeamRegister(false)}
+          backdropProps={{ className: "fixed inset-0 z-[1000] bg-black/40" }}
+          containerProps={{
+            className: "fixed inset-0 grid place-items-center p-4",
+          }}
+        >
+          <TeamRegisterModal
+            onClose={() => setShowTeamRegister(false)}
+            onRegistered={(t) => {
+              setTeam(t);
+              setStatus("authenticated");
+              setShowTeamRegister(false);
+            }}
+          />
+        </FormModal>
       </div>
     );
   }
@@ -145,13 +154,12 @@ export default function TeamContainer() {
   // 認証済みビュー
   const displayTeamName = team?.team_name ?? team?.team_login_id ?? "Team";
 
-  // ローディング／エラーの集約表示（必要に応じてUI調整OK）
   const isLoading = membersLoading || schedulesLoading;
   const firstError = membersError || schedulesError;
 
   return (
     <div className="p-4">
-      {/* ヘッダー：左側はタイトル、右側は（ユーザーと同形式の）チーム名＋ギア＋ドロップダウン */}
+      {/* ヘッダー */}
       <div className="mb-4 flex items-center justify-between text-gray-800">
         <div>
           <h2 className="text-xl font-semibold">Team Schedule</h2>
@@ -191,28 +199,33 @@ export default function TeamContainer() {
         )}
       </div>
 
-      {/* Team 設定モーダル */}
-      {showTeamSettings && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/40">
-          <TeamSettingsModal
-            onClose={() => setShowTeamSettings(false)}
-            initial={
-              team
-                ? {
-                    team_login_id: team.team_login_id ?? "",
-                    team_name: team.team_name ?? null,
-                    contact: team.contact ?? null,
-                  }
-                : undefined
-            }
-            onUpdated={(updated) => {
-              setTeam((prev) =>
-                prev ? { ...prev, ...updated } : { team_id: "", ...updated }
-              );
-            }}
-          />
-        </div>
-      )}
+      {/* Team 設定モーダル（FormModal に置き換え） */}
+      <FormModal
+        open={showTeamSettings}
+        onClose={() => setShowTeamSettings(false)}
+        backdropProps={{ className: "fixed inset-0 z-[1000] bg-black/40" }}
+        containerProps={{
+          className: "fixed inset-0 grid place-items-center p-4",
+        }}
+      >
+        <TeamSettingsModal
+          onClose={() => setShowTeamSettings(false)}
+          initial={
+            team
+              ? {
+                  team_login_id: team.team_login_id ?? "",
+                  team_name: team.team_name ?? null,
+                  contact: team.contact ?? null,
+                }
+              : undefined
+          }
+          onUpdated={(updated) => {
+            setTeam((prev) =>
+              prev ? { ...prev, ...updated } : { team_id: "", ...updated }
+            );
+          }}
+        />
+      </FormModal>
     </div>
   );
 }

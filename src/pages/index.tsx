@@ -4,8 +4,8 @@
 import { useState } from "react";
 import LoginModal from "@/components/auth/LoginModal";
 import RegisterModal from "@/components/auth/RegisterModal";
-// import FadeModalWrapper from "@/components/common/FadeModalWrapper";
 import BaseModal from "@/components/common/modal/BaseModal";
+import FormModal from "@/components/common/modal/FormModal"; // ← 新しく import
 import Button from "@/components/common/Button";
 import { useRovingFocus } from "@/hooks/useRovingFocus";
 
@@ -56,7 +56,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Login */}
+      {/* Login（シンプルなので BaseModal のまま） */}
       <BaseModal
         open={showLogin}
         onClose={() => setShowLogin(false)}
@@ -68,8 +68,8 @@ export default function Home() {
         <LoginModal onClose={() => setShowLogin(false)} />
       </BaseModal>
 
-      {/* Register */}
-      <BaseModal
+      {/* Register（スマホ対応が必要なので FormModal を使用） */}
+      <FormModal
         open={showRegister}
         onClose={() => setShowRegister(false)}
         backdropProps={{ className: "fixed inset-0 z-[1000] bg-black/50" }}
@@ -78,7 +78,7 @@ export default function Home() {
         }}
       >
         <RegisterModal onClose={() => setShowRegister(false)} />
-      </BaseModal>
+      </FormModal>
     </div>
   );
 }
