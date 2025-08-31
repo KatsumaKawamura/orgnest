@@ -48,7 +48,7 @@ export default function MyScheduleCard({
   actionPopover, // ★ 追加
   disableActions = false,
 }: Props) {
-  const bg = bgClassForFlag(flag);
+  const bg = bgClassForFlag(flag); // ← 直書きリテラルに基づくので Tailwind が確実に拾う
 
   return (
     <div
@@ -66,21 +66,19 @@ export default function MyScheduleCard({
         />
 
         {isEditing ? (
+          // ★ 保存ボタンをアンカー化（relative）し、右上にポップを重ねる
           <div className="relative inline-block">
             <Button
               variant="icon"
               size="sm"
               aria-label="保存"
               onClick={onSaveClick}
-              onPointerDown={() =>
-                (document.activeElement as HTMLElement | null)?.blur?.()
-              }
               title="保存"
               disabled={disableActions}
             >
               <Check className="h-5 w-5 text-green-600 hover:bg-gray-100 hover:text-green-700" />
             </Button>
-            {actionPopover}
+            {actionPopover /* ← ここに SimplePopover を差し込む */}
           </div>
         ) : (
           <Button
@@ -88,9 +86,6 @@ export default function MyScheduleCard({
             size="sm"
             aria-label="編集開始"
             onClick={onEditStart}
-            onPointerDown={() =>
-              (document.activeElement as HTMLElement | null)?.blur?.()
-            }
             title="編集"
             disabled={disableActions}
           >
@@ -107,7 +102,7 @@ export default function MyScheduleCard({
           flag={flag}
           isEditing={isEditing}
           onChange={(v) => onChange({ project: v })}
-          onFlagChange={(f) => onChange({ flag: f })}
+          onFlagChange={(f) => onChange({ flag: f })} // ← ここで state 更新 → 背景も即反映
         />
 
         <MyScheduleNotes
