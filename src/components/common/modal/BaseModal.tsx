@@ -43,12 +43,13 @@ function lockScroll() {
       bodyPaddingRight: body.style.paddingRight,
       bodyTouchAction: body.style.touchAction,
     };
+
     const scrollbarWidth = window.innerWidth - html.clientWidth;
     html.style.overflow = "hidden";
     body.style.overflow = "hidden";
     (html.style as any).overscrollBehavior = "none";
     (body.style as any).overscrollBehavior = "none";
-    // “キーボード閉じジェスチャ”は殺さない
+    // iOSの“キーボード閉じ”ジェスチャは殺さない
     body.style.touchAction = "";
     if (scrollbarWidth > 0) {
       body.style.paddingRight = `${scrollbarWidth}px`;
@@ -80,7 +81,7 @@ const VV_THRESHOLD_PX = 3;
 const VV_DEBOUNCE_MS = 120;
 /** 同一要素への過剰 scrollIntoView 抑止（ms） */
 const SCROLL_REPEAT_BLOCK_MS = 400;
-/** blur直後の scrollIntoView 抑止ウィンドウ（ms） */
+/** blur直後の scrollIntoView 抑止（ms） */
 const BLUR_SUPPRESS_MS = 500;
 
 function isFullyVisibleInContainer(container: HTMLElement, el: HTMLElement) {
@@ -133,8 +134,9 @@ export default function BaseModal({
   const [kbOffset, setKbOffset] = useState(0);
   const vvRef = useRef<VisualViewport | null>(null);
 
-  // container をスクロールルートとして扱う
+  // container / backdrop 参照
   const containerElRef = useRef<HTMLDivElement | null>(null);
+  const backdropElRef = useRef<HTMLDivElement | null>(null);
 
   // VV コアレッシング用
   const rafIdRef = useRef<number | null>(null);
@@ -270,6 +272,26 @@ export default function BaseModal({
     };
   }, [open, adaptToKeyboard]);
 
+  // Backdrop 上のスクロールを完全ブロック（背面スクロールの抑止）
+  useEffect(() => {
+    if (!open) return;
+    const el = backdropElRef.current;
+    if (!el) return;
+
+    const stop = (e: Event) => {
+      // Backdrop（灰色領域）上のジェスチャは常に阻止
+      e.preventDefault();
+    };
+
+    el.addEventListener("touchmove", stop, { passive: false });
+    el.addEventListener("wheel", stop, { passive: false });
+
+    return () => {
+      el.removeEventListener("touchmove", stop as EventListener);
+      el.removeEventListener("wheel", stop as EventListener);
+    };
+  }, [open]);
+
   if (!mounted || !open) return null;
 
   const target =
@@ -292,53 +314,46 @@ export default function BaseModal({
     .filter(Boolean)
     .join(" ");
 
+  // “キーボード分”を差し引いた高さでモーダルを表示
   const containerStyleExtra: React.CSSProperties = {
     maxHeight: `calc(100dvh - ${kbOffset}px)`,
     paddingBottom: `max(${kbOffset}px, env(safe-area-inset-bottom, 0px))`,
     WebkitOverflowScrolling: "touch",
+    // ゴムバンドの連鎖抑制（対応ブラウザで有効）
+    overscrollBehavior: "contain",
   };
 
-  // キーボード閉じ直後にVVが遅延する問題へのフォロー
-  const forceRefreshAfterBlur = () => {
-    // 1フレーム後に適用
+  // キーボード閉じ直後にVVが遅延する問題への“強制フル高さ”復帰
+  const forceFullHeightAfterBlur = () => {
+    // 即時で 0 に戻す
+    lastAppliedRef.current = 0;
+    setKbOffset(0);
+    // rAF 後にもう一度 0（レイアウトが安定してから）
     requestAnimationFrame(() => {
-      const vv = vvRef.current;
-      if (vv) {
-        const heightLoss = Math.max(
-          0,
-          window.innerHeight - Math.round(vv.height)
-        );
-        lastAppliedRef.current = heightLoss;
-        setKbOffset(heightLoss);
-      } else {
-        lastAppliedRef.current = 0;
-        setKbOffset(0);
-      }
-      // さらに iOS の遅延戻りに備えて、VV_DEBOUNCE_MS 後にもう一度
-      window.setTimeout(() => {
-        const vv2 = vvRef.current;
-        const heightLoss2 = vv2
-          ? Math.max(0, window.innerHeight - Math.round(vv2.height))
-          : 0;
-        lastAppliedRef.current = heightLoss2;
-        setKbOffset(heightLoss2);
-      }, VV_DEBOUNCE_MS);
+      lastAppliedRef.current = 0;
+      setKbOffset(0);
     });
+    // さらに短い遅延後にも 0（iOSの遅延復帰を潰す）
+    window.setTimeout(() => {
+      lastAppliedRef.current = 0;
+      setKbOffset(0);
+    }, VV_DEBOUNCE_MS);
   };
 
   return createPortal(
     <div
       {...backdropProps}
+      ref={backdropElRef}
       className={backdropClass}
       style={{ position: "fixed", inset: 0, ...(backdropProps?.style ?? {}) }}
       onClick={(e) => {
-        // まずフォーカス解除でキーボードを閉じる（モーダル自体は閉じない仕様）
+        // まずフォーカス解除でキーボードを閉じる（モーダルは閉じない仕様）
         (document.activeElement as HTMLElement | null)?.blur?.();
         lastBlurElRef.current = document.activeElement as HTMLElement | null;
         lastBlurAtRef.current = Date.now();
 
-        // iOS の遅延に対し、VV再計算を強制
-        forceRefreshAfterBlur();
+        // フル高さへ強制復帰
+        forceFullHeightAfterBlur();
 
         if (closeOnBackdrop) {
           if (e.target === e.currentTarget) onClose();
