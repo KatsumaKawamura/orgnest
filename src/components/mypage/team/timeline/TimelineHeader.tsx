@@ -5,21 +5,27 @@
 import { TimelineHeaderProps } from "@/types/timeline";
 import { TIME_LABEL_WIDTH } from "@/constants/timeline";
 
+type Props = TimelineHeaderProps & {
+  /** 先頭に時間ラベルぶんの空き列を含めるか（右上ヘッダーでは false にする） */
+  includeTimeLabelSpacer?: boolean;
+};
+
 export default function TimelineHeader({
   members,
   memberColumnWidth,
-}: TimelineHeaderProps) {
+  includeTimeLabelSpacer = true,
+}: Props) {
+  const templateCols = includeTimeLabelSpacer
+    ? `${TIME_LABEL_WIDTH}px repeat(${members.length}, ${memberColumnWidth}px)`
+    : `repeat(${members.length}, ${memberColumnWidth}px)`;
+
   return (
     <div
-      className="grid min-w-max"
-      style={{
-        gridTemplateColumns: `${TIME_LABEL_WIDTH}px repeat(${members.length}, ${memberColumnWidth}px)`,
-      }}
+      className="grid min-w-max border-b bg-white"
+      style={{ gridTemplateColumns: templateCols }}
     >
-      {/* 左端の空き（時間ラベル列） */}
-      <div />
+      {includeTimeLabelSpacer && <div />}
 
-      {/* メンバー名ヘッダ */}
       {members.map((m) => (
         <div
           key={m.id}

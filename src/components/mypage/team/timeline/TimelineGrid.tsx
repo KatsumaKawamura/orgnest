@@ -11,8 +11,9 @@ interface TimelineGridProps {
   pxPerMinute: number;
   memberCount: number;
   memberColumnWidth: number;
-  /** ← ここが追加：同一原点で重ねたい子要素（バー群） */
   children?: ReactNode;
+  /** 旧構成との互換用：true のときだけ左の時間ラベルを内部描画 */
+  showTimeLabels?: boolean;
 }
 
 export default function TimelineGrid({
@@ -22,44 +23,51 @@ export default function TimelineGrid({
   memberCount,
   memberColumnWidth,
   children,
+  showTimeLabels = false,
 }: TimelineGridProps) {
-  // 原点・スケールを Grid 側で一元管理
   const startMin = Math.round(startHour * 60);
   const endMin = Math.round(endHour * 60);
   const totalMin = endMin - startMin;
   const totalHeight = totalMin * pxPerMinute;
   const innerWidth = memberCount * memberColumnWidth;
 
-  // 時間リスト（整数時）
   const hours: number[] = [];
   for (let h = Math.ceil(startHour); h <= Math.floor(endHour); h++) {
     hours.push(h);
   }
 
+  const marginLeft = showTimeLabels ? TIME_LABEL_WIDTH : 0;
+
   return (
     <div className="relative">
-      {/* 左：時間ラベル列（Grid が責務を持つ） */}
-      <div
-        className="absolute left-0 top-0 h-full border-r bg-transparent"
-        style={{ width: TIME_LABEL_WIDTH }}
-      >
-        {hours.map((h) => {
-          const y = (h * 60 - startMin) * pxPerMinute;
-          return (
-            <div key={h} className="absolute left-0 right-0" style={{ top: y }}>
-              <div className="pr-2 text-sm text-gray-700 text-right">
-                {h}:00
+      {/* 左：時間ラベル列（オプション） */}
+      {showTimeLabels && (
+        <div
+          className="absolute left-0 top-0 h-full border-r bg-transparent"
+          style={{ width: TIME_LABEL_WIDTH }}
+        >
+          {hours.map((h) => {
+            const y = (h * 60 - startMin) * pxPerMinute;
+            return (
+              <div
+                key={h}
+                className="absolute left-0 right-0"
+                style={{ top: y }}
+              >
+                <div className="pr-2 text-sm text-gray-700 text-right">
+                  {h}:00
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* 右：本体（この内側の左上が原点 0,0） */}
       <div
         className="relative"
         style={{
-          marginLeft: TIME_LABEL_WIDTH,
+          marginLeft,
           width: innerWidth,
           height: totalHeight,
         }}
@@ -85,7 +93,7 @@ export default function TimelineGrid({
           />
         ))}
 
-        {/* ここにバーを重ねる：同一原点・同一相対親 */}
+        {/* バー群（同一原点・同一相対親） */}
         <div className="absolute inset-0">{children}</div>
       </div>
     </div>
