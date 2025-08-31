@@ -1,5 +1,4 @@
-// components/schedule/mypage/MyPageTimeSelect.tsx
-// @ts-nocheck
+// @/components/mypage/myschedule/MyScheduleTimeSelect.tsx
 "use client";
 
 import { Clock } from "lucide-react";

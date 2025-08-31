@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import { FLAG_OPTIONS } from "@/constants/mypage";
