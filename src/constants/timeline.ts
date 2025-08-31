@@ -1,4 +1,3 @@
-// constants/timeline.ts
 export const TIME_LABEL_WIDTH = 48; // 時間ラベル列の幅
 export const BAR_PADDING = 2; // バー左右の余白
 export const DEFAULT_MEMBER_COLUMN_WIDTH = 120;
@@ -17,3 +16,6 @@ export const FLAG_COLORS: Record<string, string> = {
   打ち合わせ: "bg-[#8AB5A3]",
   default: "bg-[#F8F8F8]",
 };
+
+// ===== 追加: タイムライン表示窓の高さ（左右で共用する Tailwind クラス） =====
+export const TIMELINE_VIEWPORT_CLASS = "h-[65vh] sm:h-[75vh] sm:max-h-[720px]";

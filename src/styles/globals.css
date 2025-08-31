@@ -56,3 +56,12 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
 }
+
+/* 共通: スクロールバーを完全に隠す */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE, 旧Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}

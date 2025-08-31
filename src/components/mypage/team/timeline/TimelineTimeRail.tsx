@@ -26,7 +26,7 @@ export default function TimelineTimeRail({
 
   return (
     <div
-      className="relative border-r bg-white"
+      className="relative border-r bg-transparent"
       style={{ width: TIME_LABEL_WIDTH, height: totalHeight }}
     >
       {hours.map((h) => {

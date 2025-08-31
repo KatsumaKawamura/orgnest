@@ -14,6 +14,7 @@ import {
   DEFAULT_PX_PER_MINUTE,
   DEFAULT_START_HOUR,
   DEFAULT_END_HOUR,
+  TIMELINE_VIEWPORT_CLASS, // ★ 追加
 } from "@/constants/timeline";
 
 export default function TimelineView({
@@ -52,15 +53,15 @@ export default function TimelineView({
 
   return (
     <div className="w-full">
-      {/* 2x2 レイアウト */}
-      <div className="grid grid-cols-[auto,1fr] grid-rows-[auto,1fr]">
-        {/* 左上：空き（時間ラベルのヘッダー角） */}
-        <div className="bg-white" />
+      {/* 2x2 レイアウト（背景は透過で統一） */}
+      <div className="grid grid-cols-[auto,1fr] grid-rows-[auto,1fr] bg-transparent">
+        {/* 左上：角（透過） */}
+        <div className="bg-transparent" />
 
-        {/* 右上：ヘッダー（横スクロール同期対象） */}
+        {/* 右上：ヘッダー（横スクロール同期対象・透過） */}
         <div
           ref={headerScrollRef}
-          className="overflow-x-hidden overflow-y-hidden"
+          className="overflow-x-hidden overflow-y-hidden bg-transparent"
         >
           <div style={{ width: innerWidth }}>
             <TimelineHeader
@@ -71,12 +72,11 @@ export default function TimelineView({
           </div>
         </div>
 
-        {/* 左下：時間レール（縦スクロール同期対象） */}
+        {/* 左下：時間レール（縦スクロール同期対象・透過） */}
         <div
           ref={timeRailScrollRef}
-          className="overflow-y-hidden overflow-x-hidden"
+          className={`overflow-y-auto overflow-x-hidden bg-transparent hide-scrollbar ${TIMELINE_VIEWPORT_CLASS}`}
         >
-          {/* 本体の高さに合わせるため、内部に高さを持つレールを置く */}
           <TimelineTimeRail
             startHour={startHour}
             endHour={endHour}
@@ -84,10 +84,10 @@ export default function TimelineView({
           />
         </div>
 
-        {/* 右下：描画エリア（縦横スクロールの主役） */}
+        {/* 右下：描画エリア（縦横スクロール主役・透過） */}
         <div
           ref={bodyScrollRef}
-          className="overflow-auto h-[60vh] sm:h-[70vh] sm:max-h-[720px] bg-white"
+          className={`overflow-auto bg-transparent hide-scrollbar ${TIMELINE_VIEWPORT_CLASS}`}
           onScroll={onBodyScroll}
         >
           <div style={{ width: innerWidth }}>

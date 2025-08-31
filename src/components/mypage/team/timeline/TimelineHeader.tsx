@@ -21,7 +21,7 @@ export default function TimelineHeader({
 
   return (
     <div
-      className="grid min-w-max border-b bg-white"
+      className="grid min-w-max border-b bg-transparent"
       style={{ gridTemplateColumns: templateCols }}
     >
       {includeTimeLabelSpacer && <div />}
