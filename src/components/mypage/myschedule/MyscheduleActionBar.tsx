@@ -32,7 +32,7 @@ export default function MyPageActionBar({
     <Button
       onClick={onToggleDeleteMode}
       variant="secondary"
-      className="flex items-center w-full sm:w-auto justify-center"
+      className="flex items-center justify-center !w-full sm:!w-32"
     >
       {deleteMode ? "戻る" : "選択"}
     </Button>
@@ -44,7 +44,7 @@ export default function MyPageActionBar({
       <Button
         onClick={open}
         variant="danger"
-        className="flex items-center w-full sm:w-auto justify-center"
+        className="flex items-center justify-center !w-full sm:!w-32"
       >
         <Trash2 className="w-5 h-5 mr-2" />
         削除
@@ -76,7 +76,7 @@ export default function MyPageActionBar({
     >
       <div className="invisible">
         <Button
-          className="flex items-center w-full sm:w-auto justify-center"
+          className="flex items-center justify-center !w-full sm:!w-32"
           variant="danger"
         >
           <Trash2 className="w-5 h-5 mr-2" />
@@ -93,18 +93,18 @@ export default function MyPageActionBar({
     <div
       className={`flex flex-col sm:flex-row sm:items-center gap-2 mb-4 relative ${className}`}
     >
-      {/* 上段：追加ボタン（スマホは幅いっぱい） */}
+      {/* 上段：追加ボタン（スマホは幅いっぱい / PCは既定幅に任せる） */}
       <div className="shrink-0 w-full sm:w-auto">
         <Button
           onClick={onAdd}
           variant="primary"
-          className="flex items-center shrink-0 whitespace-nowrap w-full sm:w-auto justify-center"
+          className="flex items-center shrink-0 whitespace-nowrap justify-center !w-full sm:!w-32"
         >
           予定を追加
         </Button>
       </div>
 
-      {/* 下段：スマホは2カラム/各カラム内ボタンが幅いっぱい。PCは横並び */}
+      {/* 下段：スマホは2カラム / PCは横並び */}
       <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:items-center sm:ml-2">
         <div className="w-full sm:w-auto flex">{slot1 ?? defaultSlot1}</div>
         <div className="w-full sm:w-auto flex">{slot2Node}</div>
