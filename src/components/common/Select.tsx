@@ -1,3 +1,4 @@
+// src/components/common/Select.tsx
 "use client";
 import { useRef } from "react";
 import clsx from "clsx";
@@ -10,12 +11,18 @@ import {
   baseIconClass,
 } from "@/components/common/selectStyles";
 
+type Props = SelectProps & {
+  /** 選択値を表示しているボックス（baseSelectClass が当たっている要素）への追加クラス */
+  displayClassName?: string;
+};
+
 export default function Select({
   value,
   options,
   onChange,
-  className,
-}: SelectProps) {
+  className, // wrapper 用
+  displayClassName, // ★ 追加：表示エリア用
+}: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   const controller = useDropdownController({
@@ -36,19 +43,22 @@ export default function Select({
     >
       {/* 選択値表示エリア */}
       <div
-        className={clsx(baseSelectClass, "cursor-pointer")}
+        className={clsx(baseSelectClass, "cursor-pointer", displayClassName)} // ★ ここで反映
         onClick={controller.toggle}
       >
         {options.find((o) => o.value === value)?.label || "選択"}
       </div>
+
       {/* ▼アイコン */}
       <button
         type="button"
         onClick={controller.toggle}
         className={baseIconClass}
+        aria-label="open options"
       >
         <ChevronDown className="w-4 h-4 text-gray-800" />
       </button>
+
       {/* 開閉アニメーション付き */}
       <ul
         className={clsx(
@@ -57,6 +67,7 @@ export default function Select({
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-2 pointer-events-none"
         )}
+        role="listbox"
       >
         {options.map((opt, index) => (
           <li
@@ -75,6 +86,8 @@ export default function Select({
               onChange(opt.value);
               controller.close();
             }}
+            role="option"
+            aria-selected={value === opt.value || undefined}
           >
             {opt.label}
           </li>

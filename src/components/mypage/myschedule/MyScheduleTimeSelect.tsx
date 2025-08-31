@@ -17,8 +17,13 @@ export default function MyScheduleTimeSelect({
   const hourOptions = HOURS.map((h) => ({ value: h, label: h }));
   const minuteOptions = MINUTES.map((m) => ({ value: m, label: m }));
 
+  // wrapper 用（幅・整列）
   const comboBoxClassPC = "w-16 text-center text-sm";
-  const comboBoxClassMobile = "w-14 text-center text-sm [&>div>input]:h-10";
+  const comboBoxClassMobile = "w-14 text-center text-sm";
+
+  // input 用（高さなど直接効かせたいもの）
+  const comboBoxInputMobile = "!h-10"; // ← これが input に効く
+  // PC でも揃えたいなら有効化: const comboBoxInputPC = "h-10";
 
   // モバイル時のみ2段目の「〜[]:[]」ひとかたまりを右にオフセット
   const secondRowIndent = "pl-10 sm:pl-0";
@@ -41,6 +46,7 @@ export default function MyScheduleTimeSelect({
                 placeholder=""
                 allowCustom
                 className={comboBoxClassMobile}
+                inputClassName={comboBoxInputMobile}
               />
               <span className="text-gray-500">:</span>
               <Combobox
@@ -50,6 +56,7 @@ export default function MyScheduleTimeSelect({
                 placeholder=""
                 allowCustom
                 className={comboBoxClassMobile}
+                inputClassName={comboBoxInputMobile}
               />
             </div>
 
@@ -64,6 +71,7 @@ export default function MyScheduleTimeSelect({
                 placeholder=""
                 allowCustom
                 className={comboBoxClassMobile}
+                inputClassName={comboBoxInputMobile}
               />
               <span className="text-gray-500">:</span>
               <Combobox
@@ -73,6 +81,7 @@ export default function MyScheduleTimeSelect({
                 placeholder=""
                 allowCustom
                 className={comboBoxClassMobile}
+                inputClassName={comboBoxInputMobile}
               />
             </div>
           </div>
@@ -87,6 +96,7 @@ export default function MyScheduleTimeSelect({
               placeholder=""
               allowCustom
               className={comboBoxClassPC}
+              // inputClassName={comboBoxInputPC} // 高さをPCでも揃えたいなら有効化
             />
             <span className="text-gray-500">:</span>
             <Combobox
@@ -96,6 +106,7 @@ export default function MyScheduleTimeSelect({
               placeholder=""
               allowCustom
               className={comboBoxClassPC}
+              // inputClassName={comboBoxInputPC}
             />
             <span className="text-gray-800">〜</span>
             <Combobox
@@ -105,6 +116,7 @@ export default function MyScheduleTimeSelect({
               placeholder=""
               allowCustom
               className={comboBoxClassPC}
+              // inputClassName={comboBoxInputPC}
             />
             <span className="text-gray-500">:</span>
             <Combobox
@@ -114,6 +126,7 @@ export default function MyScheduleTimeSelect({
               placeholder=""
               allowCustom
               className={comboBoxClassPC}
+              // inputClassName={comboBoxInputPC}
             />
           </div>
         </>

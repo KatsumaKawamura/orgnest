@@ -1,3 +1,4 @@
+// @/components/common/Combobox.tsx
 "use client";
 import { useRef, useState } from "react";
 import clsx from "clsx";
@@ -10,15 +11,21 @@ import {
   baseIconClass,
 } from "@/components/common/selectStyles";
 
+/**
+ * 変更点:
+ * - inputClassName?: string を追加（input の高さ/文字サイズなどを外部から直接指定可能）
+ * - 既存の className は wrapper <div> に適用（従来どおり）
+ */
 export default function Combobox({
   value,
   options,
   placeholder,
   onChange,
   className,
+  inputClassName, // ★ 追加
   allowCustom = false,
   allowFiltering = false,
-}: ComboboxProps) {
+}: ComboboxProps & { inputClassName?: string }) {
   const [showAll, setShowAll] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +39,7 @@ export default function Combobox({
     showAll || !allowFiltering
       ? normalizedOptions
       : normalizedOptions.filter((opt) =>
-          opt.label.toLowerCase().includes(value.toLowerCase())
+          opt.label.toLowerCase().includes(String(value ?? "").toLowerCase())
         );
 
   const controller = useDropdownController({
@@ -62,7 +69,7 @@ export default function Combobox({
             controller.open();
           }}
           onKeyDown={controller.handleKeyDown}
-          className={clsx(baseSelectClass)}
+          className={clsx(baseSelectClass, inputClassName)} // ★ ここで反映
         />
         {/* ▼アイコン */}
         <button
@@ -72,10 +79,12 @@ export default function Combobox({
             controller.toggle();
           }}
           className={baseIconClass}
+          aria-label="open options"
         >
           <ChevronDown className="w-4 h-4 text-gray-800" />
         </button>
       </div>
+
       {/* 開閉アニメーション付き */}
       <ul
         className={clsx(
@@ -84,6 +93,7 @@ export default function Combobox({
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-2 pointer-events-none"
         )}
+        role="listbox"
       >
         {filteredOptions.map((opt, index) => (
           <li
@@ -99,6 +109,10 @@ export default function Combobox({
               onChange(opt.value);
               controller.close();
             }}
+            role="option"
+            aria-selected={
+              String(value ?? "") === String(opt.value ?? "") || undefined
+            }
           >
             {opt.label}
           </li>
