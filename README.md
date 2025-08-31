@@ -1,40 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# OrgNest
 
-## Getting Started
+小規模チーム向けの日次スケジュール管理アプリケーション（MVP版）です。  
+PCブラウザでの操作性を重視しつつ、最低限のモバイル対応も行っています。
 
-First, run the development server:
+## デモ
+- デプロイ先: https://orgnest.vercel.app  
+- デモアカウント:  
+  - user_id: demo_user
+  - user_pass: demo0000
+  - team_id: demo_team
+  - team_pass: demo0000
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 主な機能
+- ユーザー認証（登録・ログイン）  
+- 1日の予定をカード形式で追加・編集  
+- チームメンバー全員の予定を一覧できるタイムラインビュー  
+- アカウント情報の更新（ユーザー名・連絡先など）  
+- モーダルを利用したシンプルで統一された操作フロー  
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 技術スタック
+- フロントエンド: Next.js (Pages Router), React, TypeScript  
+- スタイリング: TailwindCSS, lucide-react  
+- バックエンド: Supabase (PostgreSQL, 認証)  
+- デプロイ: Vercel  
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## 開発上の工夫
+- スケジュールカード、タイムライン、モーダルなどを**再利用可能なコンポーネント**として設計  
+- 利用者が迷わないよう、**シンプルで一貫した導線**を意識したUI設計  
+  - 例: すべての操作をモーダルベースに統一し、どの場面でも同じ操作感で進められる  
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+## 今後の展望
+- チーム内コメント機能  
+- 週／月単位のスケジュールビュー  
+- サブスクリプション課金機能（Stripe連携）  
+- PWA化によるオフライン対応  
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+## スクリーンショット
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### ログイン画面
+![ログイン画面](docs/screenshots/demo1.png)
 
-## Learn More
+### マイスケジュール編集
+![マイスケジュール編集](docs/screenshots/demo2.png)
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+### チームタイムライン
+![チームタイムライン](docs/screenshots/demo3.png)
