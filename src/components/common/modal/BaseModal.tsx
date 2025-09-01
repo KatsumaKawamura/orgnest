@@ -100,7 +100,6 @@ export default function BaseModal({
   closeOnEsc = false,
   closeOnBackdrop = false,
 }: BaseModalProps) {
-  // ← ここを state 方式に変更
   const [mounted, setMounted] = useState(false);
 
   // クライアントマウント判定（SSR回避）
@@ -147,9 +146,24 @@ export default function BaseModal({
   const backdropClass = ["bm-overlay", backdropProps?.className]
     .filter(Boolean)
     .join(" ");
-  const containerClass = ["bm-container", containerProps?.className]
+
+  // 変更点：
+  // - container に「最大高さ（まずは 100vh）」＋「縦スクロール（auto）」＋「スクロールバー非表示」を付与
+  // - 既存のクラス/スタイルは維持しつつ上書き最小限
+  const containerClass = [
+    "bm-container",
+    "hide-scrollbar",
+    containerProps?.className,
+  ]
     .filter(Boolean)
     .join(" ");
+
+  const containerStyle: React.CSSProperties = {
+    maxHeight: "100vh", // 不具合が出たら 100svh に切替予定
+    overflowY: "auto",
+    WebkitOverflowScrolling: "touch", // iOS慣性スクロール
+    ...(containerProps?.style ?? {}),
+  };
 
   return createPortal(
     <div
@@ -170,6 +184,7 @@ export default function BaseModal({
       <div
         {...containerProps}
         className={containerClass}
+        style={containerStyle}
         // クリックがBackdropへバブリングして閉じないように
         onClick={(e) => {
           containerProps?.onClick?.(e);
