@@ -1,23 +1,27 @@
 // @/components/common/modal/FormModal.tsx
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo } from "react";
 import BaseModal, {
   type BaseModalProps,
 } from "@/components/common/modal/BaseModal";
 
 type FormModalProps = Omit<BaseModalProps, "children"> & {
-  /** BaseModal完全準拠。スマホ向け補助をON/OFF（既定: true） */
+  /** スマホ向け補助（visualViewport 追従など）をON/OFF（既定: true） */
   adaptToKeyboard?: boolean;
+  /** 内部パネルの className を追加したい場合（任意） */
+  panelClassName?: string;
+  /** スクロール本文の className を追加したい場合（任意） */
+  contentClassName?: string;
   children: React.ReactNode;
 };
 
 /**
- * FormModal = BaseModal 完全準拠 + スマホ体験の最小改善
- * - 見た目（カード）は付けない
- * - Backdropタップ時はまず blur（= キーボード閉じ）
- * - open中は body.touchAction を一時的に "" にして iOS のキーボードジェスチャを妨げない
- * - VisualViewport 追従（任意）で入力が被ったら scrollIntoView（高さ・paddingは変更しない）
+ * FormModal = BaseModal + フォーム向け最小改善
+ * - Backdropタップ時はまず blur でキーボードを閉じる
+ * - open中は body.touchAction を "" にして iOSのジェスチャを妨げない
+ * - visualViewport 変化時は必要に応じて scrollIntoView（ゆるいデバウンス）
+ * - さらに "高さ上限 + 本文のみ縦スクロール" を付与（← SE対策の肝）
  */
 export default function FormModal({
   open,
@@ -29,6 +33,8 @@ export default function FormModal({
   closeOnEsc = false,
   closeOnBackdrop = false,
   adaptToKeyboard = true,
+  panelClassName = "",
+  contentClassName = "",
 }: FormModalProps) {
   // ---- Backdrop onClick を差し込む（まず blur、必要なら close） ----
   const mergedBackdropProps = useMemo(() => {
@@ -36,15 +42,8 @@ export default function FormModal({
     return {
       ...backdropProps,
       onClick: (e: any) => {
-        // まずフォーカス解除（= キーボードを閉じる）
-        (document.activeElement as HTMLElement | null)?.blur?.();
-
-        if (closeOnBackdrop) {
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }
-        // 既存ハンドラも呼ぶ
+        (document.activeElement as HTMLElement | null)?.blur?.(); // まずフォーカス解除＝キーボード閉じ
+        if (closeOnBackdrop && e.target === e.currentTarget) onClose();
         originalOnClick?.(e);
       },
     } as typeof backdropProps;
@@ -55,15 +54,13 @@ export default function FormModal({
     if (!open) return;
     const body = document.body;
     const prev = body.style.touchAction;
-    // BaseModalは body.touchAction="none" にするが、ここで "" に上書きしてジェスチャ許可
-    body.style.touchAction = "";
+    body.style.touchAction = ""; // BaseModal の "none" を上書きして許可
     return () => {
-      // 復帰は BaseModal の unlock に任せるが、万一のため上書きを戻す
       body.style.touchAction = prev;
     };
   }, [open]);
 
-  // ---- VisualViewport 追従（高さは変えず、必要なときだけ scrollIntoView） ----
+  // ---- visualViewport 追従（入力が被ったら中央付近に寄せる） ----
   useEffect(() => {
     if (!open || !adaptToKeyboard) return;
 
@@ -86,7 +83,6 @@ export default function FormModal({
 
     const apply = () => {
       const ae = document.activeElement as HTMLElement | null;
-      // blur直後は何もしない（不要なスクロール抑止）
       const justBlurred =
         lastBlurEl &&
         (!ae || ae === lastBlurEl) &&
@@ -99,7 +95,6 @@ export default function FormModal({
           ae.tagName === "TEXTAREA" ||
           ae.getAttribute("contenteditable") === "true")
       ) {
-        // レイアウト確定後に中央付近へ寄せる（ウィンドウ側スクロールに任せる）
         requestAnimationFrame(() => {
           try {
             ae.scrollIntoView({ block: "center", inline: "nearest" });
@@ -120,9 +115,7 @@ export default function FormModal({
       });
     };
 
-    // 初期適用
-    apply();
-
+    apply(); // 初期適用
     document.addEventListener("blur", onBlur, true);
     vv?.addEventListener("resize", schedule);
     vv?.addEventListener("scroll", schedule);
@@ -148,7 +141,23 @@ export default function FormModal({
       closeOnEsc={closeOnEsc}
       closeOnBackdrop={closeOnBackdrop}
     >
-      {children}
+      {/* ★ 追加：高さ上限 + 本文スクロール（iPhone SE 対策の肝） */}
+      <div
+        className={
+          "flex max-h-[100dvh] sm:max-h-[90vh] w-full flex-col overscroll-contain " +
+          panelClassName
+        }
+      >
+        <div
+          className={
+            // iOS 慣性スクロールを有効化（-webkit-overflow-scrolling）
+            "flex-1 overflow-y-auto px-4 py-3 [@supports(-webkit-touch-callout:none)]:[-webkit-overflow-scrolling:touch] " +
+            contentClassName
+          }
+        >
+          {children}
+        </div>
+      </div>
     </BaseModal>
   );
 }
