@@ -17,4 +17,4 @@ export const FLAG_COLORS: Record<string, string> = {
 };
 
 // ===== 追加: タイムライン表示窓の高さ（左右で共用する Tailwind クラス） =====
-export const TIMELINE_VIEWPORT_CLASS = "h-[65vh] sm:h-[75vh] sm:max-h-[720px]";
+export const TIMELINE_VIEWPORT_CLASS = "h-[80vh] sm:h-[85vh] sm:max-h-[720px]";
