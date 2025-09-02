@@ -1,4 +1,3 @@
-export const TIME_LABEL_WIDTH = 48; // 時間ラベル列の幅
 export const BAR_PADDING = 2; // バー左右の余白
 export const DEFAULT_MEMBER_COLUMN_WIDTH = 120;
 export const DEFAULT_PX_PER_MINUTE = 2;

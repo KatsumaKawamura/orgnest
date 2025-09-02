@@ -1,8 +1,6 @@
 // @/components/mypage/team/timeline/TimelineTimeRail.tsx
 "use client";
 
-import { TIME_LABEL_WIDTH } from "@/constants/timeline";
-
 type Props = {
   startHour: number;
   endHour: number;
@@ -26,7 +24,7 @@ export default function TimelineTimeRail({
 
   return (
     <div
-      className={`relative border-r bg-transparent w-[32px] sm:w-[${TIME_LABEL_WIDTH}px]`}
+      className={`relative border-r bg-transparent w-[32px] sm:w-[48px]`}
       style={{ height: totalHeight }}
     >
       {hours.map((h) => {
