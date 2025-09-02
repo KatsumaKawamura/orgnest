@@ -7,17 +7,32 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  // session Cookie を削除
-  res.setHeader(
-    "Set-Cookie",
+  const isProd = process.env.NODE_ENV === "production";
+
+  // session / team_session を両方削除（発行時と同じ属性で無効化）
+  res.setHeader("Set-Cookie", [
     serialize("session", "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      expires: new Date(0), // 1970年1月1日 => 即時無効化
+      secure: isProd,
+      expires: new Date(0), // 即時無効化
       path: "/",
       sameSite: "lax",
-    })
+    }),
+    serialize("team_session", "", {
+      httpOnly: true,
+      secure: isProd,
+      expires: new Date(0), // 即時無効化
+      path: "/",
+      sameSite: "lax",
+    }),
+  ]);
+
+  // 念のためキャッシュ抑止
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, max-age=0"
   );
+  res.setHeader("Pragma", "no-cache");
 
   return res.status(200).json({ message: "ログアウトしました" });
 }
