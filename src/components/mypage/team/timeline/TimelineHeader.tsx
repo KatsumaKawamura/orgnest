@@ -1,36 +1,28 @@
 // @/components/mypage/team/timeline/TimelineHeader.tsx
-// @ts-nocheck
 "use client";
 
-import { TimelineHeaderProps } from "@/types/timeline";
-import { TIME_LABEL_WIDTH } from "@/constants/timeline";
-
-type Props = TimelineHeaderProps & {
-  /** 先頭に時間ラベルぶんの空き列を含めるか（右上ヘッダーでは false にする） */
-  includeTimeLabelSpacer?: boolean;
+type Props = {
+  members: { id: string; name: string }[];
+  memberColumnWidth: number;
+  includeTimeLabelSpacer?: boolean; // 互換のため残すが、内部では常時 true として扱う
 };
 
-export default function TimelineHeader({
-  members,
-  memberColumnWidth,
-  includeTimeLabelSpacer = true,
-}: Props) {
-  const templateCols = includeTimeLabelSpacer
-    ? `${TIME_LABEL_WIDTH}px repeat(${members.length}, ${memberColumnWidth}px)`
-    : `repeat(${members.length}, ${memberColumnWidth}px)`;
+export default function TimelineHeader({ members, memberColumnWidth }: Props) {
+  const cols = `var(--time-label-w) repeat(${members.length}, ${memberColumnWidth}px)`;
 
   return (
     <div
-      className="grid min-w-max border-b bg-transparent"
-      style={{ gridTemplateColumns: templateCols }}
+      className="grid items-center bg-transparent"
+      style={{ gridTemplateColumns: cols }}
     >
-      {includeTimeLabelSpacer && <div />}
-
+      {/* 先頭：ラベル用スペーサー（空） */}
+      <div className="bg-transparent" />
+      {/* メンバー名ヘッダ */}
       {members.map((m) => (
         <div
           key={m.id}
-          className="text-center font-semibold text-gray-800"
-          style={{ width: memberColumnWidth }}
+          className="truncate text-gray-700 text-sm font-semibold text-center px-2 py-2"
+          title={m.name}
         >
           {m.name}
         </div>

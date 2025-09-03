@@ -1,3 +1,4 @@
+// @/constants/timeline.ts
 export const BAR_PADDING = 2; // バー左右の余白
 export const DEFAULT_MEMBER_COLUMN_WIDTH = 120;
 export const DEFAULT_PX_PER_MINUTE = 2;
@@ -16,5 +17,5 @@ export const FLAG_COLORS: Record<string, string> = {
   default: "bg-[#F8F8F8]",
 };
 
-// ===== 追加: タイムライン表示窓の高さ（左右で共用する Tailwind クラス） =====
+// タイムライン表示窓の高さ（左右で共用する Tailwind クラス）
 export const TIMELINE_VIEWPORT_CLASS = "h-[70vh] sm:h-[85vh] sm:max-h-[720px]";

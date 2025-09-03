@@ -24,19 +24,25 @@ export default function TimelineTimeRail({
 
   return (
     <div
-      className={`relative border-r bg-transparent w-[32px] sm:w-[48px]`}
+      className="relative w-[var(--time-label-w)] select-none bg-red-200/40"
       style={{ height: totalHeight }}
     >
+      {/* 時刻ラベル */}
       {hours.map((h) => {
-        const y = (h * 60 - startMin) * pxPerMinute;
+        const top = (h * 60 - startMin) * pxPerMinute;
         return (
-          <div key={h} className="absolute left-0 right-0" style={{ top: y }}>
-            <div className="pr-1 sm:pr-2 text-xs sm:text-sm text-gray-700 text-left">
-              {h}:00
-            </div>
+          <div
+            key={h}
+            className="absolute right-0 text-gray-500 text-[11px] sm:text-xs leading-none"
+            style={{ top }}
+          >
+            {/* <sm: "h" / sm以上: "h:00" */}
+            <span className="sm:hidden">{h}</span>
+            <span className="hidden sm:inline">{h}:00</span>
           </div>
         );
       })}
+      {/* 目盛り線（必要ならここに描画を維持） */}
     </div>
   );
 }

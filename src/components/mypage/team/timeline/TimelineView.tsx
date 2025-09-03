@@ -1,5 +1,4 @@
 // @/components/mypage/team/timeline/TimelineView.tsx
-// @ts-nocheck
 "use client";
 
 import { useRef, useCallback } from "react";
@@ -14,7 +13,7 @@ import {
   DEFAULT_PX_PER_MINUTE,
   DEFAULT_START_HOUR,
   DEFAULT_END_HOUR,
-  TIMELINE_VIEWPORT_CLASS, // ★ 追加
+  TIMELINE_VIEWPORT_CLASS,
 } from "@/constants/timeline";
 
 export default function TimelineView({
@@ -38,23 +37,18 @@ export default function TimelineView({
   const onBodyScroll = useCallback(() => {
     const body = bodyScrollRef.current;
     if (!body) return;
-
-    // 横同期: ヘッダー
-    if (headerScrollRef.current) {
-      headerScrollRef.current.scrollLeft = body.scrollLeft;
-    }
-    // 縦同期: 時間レール
-    if (timeRailScrollRef.current) {
-      timeRailScrollRef.current.scrollTop = body.scrollTop;
-    }
+    if (headerScrollRef.current)
+      headerScrollRef.current.scrollLeft = body.scrollLeft; // 横同期
+    if (timeRailScrollRef.current)
+      timeRailScrollRef.current.scrollTop = body.scrollTop; // 縦同期
   }, []);
 
   const innerWidth = safeMembers.length * memberColumnWidth;
 
   return (
     <div className="w-full">
-      {/* 2x2 レイアウト（背景は透過で統一） */}
-      <div className="grid grid-cols-[auto,1fr] grid-rows-[auto,1fr] bg-transparent">
+      {/* 親ラッパ: ラベル幅を CSS 変数で一元管理（<sm:32px / sm:48px） */}
+      <div className="grid grid-cols-[auto,1fr] grid-rows-[auto,1fr] bg-transparent [--time-label-w:12px] sm:[--time-label-w:32px]">
         {/* 左上：角（透過） */}
         <div className="bg-transparent" />
 
@@ -67,7 +61,8 @@ export default function TimelineView({
             <TimelineHeader
               members={safeMembers}
               memberColumnWidth={memberColumnWidth}
-              includeTimeLabelSpacer={false}
+              // スペーサーは常時必須に統一（propsは内部で無視/常時trueでもOK）
+              includeTimeLabelSpacer={true}
             />
           </div>
         </div>
@@ -97,7 +92,6 @@ export default function TimelineView({
               pxPerMinute={pxPerMinute}
               memberCount={safeMembers.length}
               memberColumnWidth={memberColumnWidth}
-              showTimeLabels={false}
             >
               {safeMembers.length > 0 &&
                 slotted.map((s) => (
