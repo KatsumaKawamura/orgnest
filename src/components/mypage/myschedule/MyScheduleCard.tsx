@@ -96,14 +96,16 @@ export default function MyScheduleCard({
 
       {/* 下段：プロジェクト選択とメモ */}
       <div className="space-y-3">
+        {/* ▼▼ ここだけ最小修正：props 名を型に合わせる（value / options） ▼▼ */}
         <MyScheduleProjectSelect
           value={project}
           options={projectList}
           flag={flag}
           isEditing={isEditing}
           onChange={(v) => onChange({ project: v })}
-          onFlagChange={(f) => onChange({ flag: f })} // ← ここで state 更新 → 背景も即反映
+          onFlagChange={(f) => onChange({ flag: f })}
         />
+        {/* ▲▲ ここだけ最小修正 ▲▲ */}
 
         <MyScheduleNotes
           notes={notes}

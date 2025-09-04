@@ -1,17 +1,8 @@
 // @/utils/timeline.ts
-import { FLAG_COLORS } from "@/constants/timeline";
+import { FLAG_COLORS, FLAG_COLORS_MYPAGE } from "@/constants/timeline";
 
 /**
  * minベースの座標計算
- * @param startMin 開始（分）
- * @param endMin   終了（分）
- * @param startHour タイムラインの開始時刻（少数可）
- * @param pxPerMinute 1分あたりのピクセル
- * @param memberIndex メンバー列のインデックス（0基点）
- * @param memberColumnWidth 各メンバー列の幅
- * @param slotIndex 重なり時のスロット番号
- * @param slotCount 同時間帯の重なり総数
- * @param padding バー左右の余白
  */
 export function calculateBarPosition(
   startMin: number,
@@ -36,6 +27,24 @@ export function calculateBarPosition(
   return { top, height, width, left };
 }
 
-export function getFlagColor(flag: string): string {
+/**
+ * 文脈別の背景クラス（固定文字列で返すので Tailwind 抽出に安全）
+ * ctx: "timeline" | "mypage"
+ */
+export function getFlagBg(
+  flag: string,
+  ctx: "timeline" | "mypage" = "timeline"
+): string {
+  if (ctx === "mypage") {
+    return FLAG_COLORS_MYPAGE[flag] || FLAG_COLORS_MYPAGE.default;
+  }
   return FLAG_COLORS[flag] || FLAG_COLORS.default;
+}
+
+/**
+ * 後方互換：既存の Timeline 向け API
+ * ＝ timeline (不透明) を返す
+ */
+export function getFlagColor(flag: string): string {
+  return getFlagBg(flag, "timeline");
 }

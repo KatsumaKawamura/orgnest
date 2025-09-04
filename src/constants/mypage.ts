@@ -1,4 +1,4 @@
-// components/schedule/mypage/MyPageConstants.ts
+// @/constants/mypage.ts
 
 // フラグ選択肢
 export const FLAG_OPTIONS = ["事務所", "現場", "打ち合わせ"] as const;
@@ -23,12 +23,7 @@ export const VALIDATION_MESSAGES = {
   INVALID_RANGE: "終了時間は開始時間より後にしてください",
 };
 
-// フラグごとのカード背景色
-export const FLAG_COLORS: Record<string, string> = {
-  事務所: "bg-[#F8F8F8]",
-  現場: "bg-[#E99F67]/20",
-  打ち合わせ: "bg-[#8AB5A3]/20",
-};
+// （削除）フラグごとのカード背景色は utils/timeline の getFlagBg(...,"mypage") を使用
 
 // 保存後のソートディレイ（ms）
 export const SORT_DELAY_MS = 600; // 保存後のソートディレイ（ms）
