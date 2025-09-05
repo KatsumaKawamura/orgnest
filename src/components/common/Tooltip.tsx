@@ -146,7 +146,7 @@ export default function Tooltip({
       ref={tipRef}
       style={style}
       className={`max-w-[min(320px,calc(100vw-16px))] rounded bg-gray-800 px-2 py-1
-                  text-xs text-white shadow-lg border border-white/ z-[800]
+                  text-xs text-white shadow-lg border border-white/ z-[800] whitespace-pre-line break-words
                   ${animateState === "showing" ? "opacity-100" : "opacity-0"}`}
       role="tooltip"
     >
