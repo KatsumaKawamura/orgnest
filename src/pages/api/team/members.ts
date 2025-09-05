@@ -60,24 +60,29 @@ export default async function handler(
 
     let members: any[] = [];
     if (userIds.length > 0) {
-      // 2. users からユーザー情報
+      // 2. ビューからユーザー情報（display_name/ sort_key を利用）
       const { data: usersRows, error: usersErr } = await supabase
-        .from("users")
-        .select("user_id, user_name, login_id")
+        .from("view_users_for_members")
+        .select("user_id, user_name, login_id, display_name, sort_key")
         .in("user_id", userIds)
-        // ★ フォールバック込みで昇順ソート
-        .order("user_name", { ascending: true, nullsFirst: false })
-        .order("login_id", { ascending: true });
+        .order("sort_key", { ascending: true })
+        .order("user_id", { ascending: true });
 
       if (usersErr) throw usersErr;
 
       members = (usersRows ?? []).map((u) => ({
         id: u.user_id,
-        name: u.user_name ?? u.login_id ?? "(no name)",
+        // 表示は現行方針どおり：user_name ?? login_id をUIで使ってOKだが、
+        // 念のためAPIでも display_name を返す
+        name: u.display_name,
         loginId: u.login_id,
+        // 必要ならフロントで使えるよう displayName を追加
+        displayName: u.display_name,
       }));
     }
 
+    res.setHeader("Cache-Control", NO_STORE["Cache-Control"]);
+    res.setHeader("Pragma", NO_STORE["Pragma"]);
     return res.status(200).json({ ok: true, team_id, members });
   } catch (err) {
     console.error("[/api/team/members] error:", err);
