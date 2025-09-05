@@ -1,8 +1,11 @@
-// components/common/Tooltip.tsx
 "use client";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { TOOLTIP_DELAY, TOOLTIP_FADE_DURATION } from "@/constants/timeline";
+import {
+  TOOLTIP_DELAY,
+  TOOLTIP_FADE_DURATION,
+  TIMELINE_VIEWPORT_CLASS,
+} from "@/constants/timeline";
 import { useRouter } from "next/router";
 
 interface TooltipProps {
@@ -16,6 +19,22 @@ interface TooltipProps {
 }
 
 const MARGIN = 8;
+
+// TIMELINE_VIEWPORT_CLASS に含まれる全クラスを満たす最寄りの親要素を探す
+function findTimelineViewportContainer(
+  fromEl: HTMLElement | null
+): HTMLElement | null {
+  if (!fromEl) return null;
+  const tokens = String(TIMELINE_VIEWPORT_CLASS).split(/\s+/).filter(Boolean);
+  let el: HTMLElement | null = fromEl.parentElement;
+  while (el) {
+    const cl = el.classList;
+    const hit = tokens.every((t) => cl.contains(t));
+    if (hit) return el;
+    el = el.parentElement;
+  }
+  return null;
+}
 
 export default function Tooltip({
   content,
@@ -34,7 +53,7 @@ export default function Tooltip({
   const [style, setStyle] = useState<React.CSSProperties | undefined>();
   const router = useRouter();
 
-  // 採寸＆配置
+  // 配置計算
   const recalc = () => {
     const anchor = anchorRef.current;
     const tip = tipRef.current;
@@ -43,29 +62,37 @@ export default function Tooltip({
     const rect = anchor.getBoundingClientRect();
     const tipRect = tip.getBoundingClientRect();
 
+    // 横方向：ビューポート基準（基準揃え済み）
     const docEl = document.documentElement;
     const viewportW = docEl.clientWidth;
     const viewportH = docEl.clientHeight;
-
-    // visualViewport のオフセット（PCは通常 0 / モバイルで効く）
     const vv = (window as any).visualViewport;
     const offsetLeft = vv?.offsetLeft ?? 0;
     const offsetTop = vv?.offsetTop ?? 0;
 
-    const baseTop =
-      position === "top"
-        ? rect.top - tipRect.height - MARGIN
-        : rect.bottom + MARGIN;
     const baseLeft = rect.left + rect.width / 2 - tipRect.width / 2;
-
     const clampedLeft = Math.max(
       8 + offsetLeft,
       Math.min(baseLeft, offsetLeft + viewportW - tipRect.width - 8)
     );
-    const clampedTop = Math.max(
-      8 + offsetTop,
-      Math.min(baseTop, offsetTop + viewportH - tipRect.height - 8)
-    );
+
+    // 縦方向：描画エリア（本体スクロール容器）基準でクランプ（オートフリップなし）
+    const containerEl = findTimelineViewportContainer(anchor);
+    const containerRect = containerEl?.getBoundingClientRect();
+    const baseTop =
+      position === "top"
+        ? rect.top - tipRect.height - MARGIN
+        : rect.bottom + MARGIN;
+
+    // コンテナが見つからない場合はビューポート基準でフォールバック
+    const verticalMin = containerRect
+      ? containerRect.top + MARGIN
+      : offsetTop + MARGIN;
+    const verticalMax = containerRect
+      ? containerRect.bottom - tipRect.height - MARGIN
+      : offsetTop + viewportH - tipRect.height - MARGIN;
+
+    const clampedTop = Math.max(verticalMin, Math.min(baseTop, verticalMax));
 
     setStyle({
       position: "fixed",
@@ -76,7 +103,7 @@ export default function Tooltip({
     });
   };
 
-  // 表示・非表示のアニメーション管理（表示時は rAF で再採寸をもう一度）
+  // 表示/非表示制御（表示時は rAF で再採寸も継続）
   useEffect(() => {
     if (!mounted) return;
     let t: any;
@@ -84,9 +111,8 @@ export default function Tooltip({
       setAnimateState("idle");
       t = setTimeout(() => {
         setAnimateState("showing");
-        recalc(); // 1回目
-        // 次フレームで DOM レイアウト確定後にもう一度採寸
-        requestAnimationFrame(() => recalc()); // 2回目
+        recalc();
+        requestAnimationFrame(() => recalc());
       }, delay);
     } else {
       setAnimateState("hiding");
@@ -96,23 +122,20 @@ export default function Tooltip({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, mounted]);
 
-  // 初回マウント
   useEffect(() => setMounted(true), []);
 
-  // サイズ変化に追従（折り返し・フォント適用など）
+  // Tip サイズ変化に追従
   useLayoutEffect(() => {
     if (!mounted) return;
     const tip = tipRef.current;
     if (!tip) return;
-
     const ro = new ResizeObserver(() => recalc());
     ro.observe(tip);
-
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, visible]);
 
-  // 再配置と自動クローズ
+  // 再配置と自動クローズ（従来のまま）
   useLayoutEffect(() => {
     if (!mounted) return;
 
@@ -128,25 +151,22 @@ export default function Tooltip({
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onResize);
 
-    // visualViewport 変化にも追従（モバイル）
     const vv = (window as any).visualViewport;
     const onVV = () => recalc();
     vv?.addEventListener?.("resize", onVV);
     vv?.addEventListener?.("scroll", onVV);
 
-    // ルート遷移で閉じる（Pages Router）
     const onRoute = () => {
       if (onRequestClose && visible) onRequestClose();
     };
     router.events?.on("routeChangeStart", onRoute);
 
-    // 外側タップ検知（capture）
     const onDocPointer = (e: Event) => {
       if (!visible) return;
       const anchor = anchorRef.current;
       if (!anchor) return;
       const target = e.target as Node | null;
-      if (target && anchor.contains(target)) return; // アンカー内は閉じない
+      if (target && anchor.contains(target)) return;
       onRequestClose?.();
     };
 
