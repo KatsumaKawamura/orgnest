@@ -6,7 +6,7 @@ import TimelineGrid from "./TimelineGrid";
 import TimelineBar from "./TimelineBar";
 import TimelineHeader from "./TimelineHeader";
 import TimelineTimeRail from "./TimelineTimeRail";
-import { assignSlots } from "@/utils/scheduleUtils";
+// ※slot 付与は useTeamTimelineData で確定するため、assignSlots は本コンポーネントでは呼び出さない
 import { TimelineViewProps } from "@/types/timeline";
 import {
   DEFAULT_MEMBER_COLUMN_WIDTH,
@@ -27,7 +27,7 @@ export default function TimelineView({
 
   const safeMembers = Array.isArray(members) ? members : [];
   const safeSchedules = Array.isArray(schedules) ? schedules : [];
-  const slotted = assignSlots(safeSchedules);
+  // ここでは assignSlots を再適用しない（※slot 付与は useTeamTimelineData で完結）
 
   // refs for scroll sync
   const headerScrollRef = useRef<HTMLDivElement | null>(null);
@@ -47,7 +47,7 @@ export default function TimelineView({
 
   return (
     <div className="w-full">
-      {/* 親ラッパ: ラベル幅を CSS 変数で一元管理（<sm:32px / sm:48px） */}
+      {/* 親ラッパ: ラベル幅を CSS 変数で一元管理（<sm:12px / sm:32px） */}
       <div className="grid grid-cols-[auto,1fr] grid-rows-[auto,1fr] bg-transparent [--time-label-w:12px] sm:[--time-label-w:32px]">
         {/* 左上：角（透過） */}
         <div className="bg-transparent" />
@@ -94,7 +94,7 @@ export default function TimelineView({
               memberColumnWidth={memberColumnWidth}
             >
               {safeMembers.length > 0 &&
-                slotted.map((s) => (
+                safeSchedules.map((s) => (
                   <TimelineBar
                     key={s.id}
                     schedule={s}
