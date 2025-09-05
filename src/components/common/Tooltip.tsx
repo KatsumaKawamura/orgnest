@@ -19,7 +19,7 @@ interface TooltipProps {
   onRequestClose?: () => void;
 }
 
-const MARGIN = 8;
+const MARGIN = 12;
 
 // 複数クラスに対応した安全なコンテナ探索
 function findViewportContainer(

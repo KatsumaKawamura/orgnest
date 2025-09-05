@@ -7,7 +7,7 @@ export const DEFAULT_START_HOUR = 7.5; // デフォルト開始時間
 export const DEFAULT_END_HOUR = 24.5; // デフォルト終了時間
 
 // Tooltip関連
-export const TOOLTIP_DELAY = 0; // 表示ディレイ(ms)
+export const TOOLTIP_DELAY = 30; // 表示ディレイ(ms)
 export const TOOLTIP_FADE_DURATION = 100; // フェード時間(ms)
 
 /**
