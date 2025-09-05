@@ -24,7 +24,7 @@ export default function TimelineTimeRail({
 
   return (
     <div
-      className="relative w-[var(--time-label-w)] select-none bg-red-200/40"
+      className="relative w-[var(--time-label-w)] select-none"
       style={{ height: totalHeight }}
     >
       {/* 時刻ラベル */}
