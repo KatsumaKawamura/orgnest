@@ -3,6 +3,7 @@
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { TOOLTIP_DELAY, TOOLTIP_FADE_DURATION } from "@/constants/timeline";
+import { useRouter } from "next/router";
 
 interface TooltipProps {
   content: ReactNode;
@@ -11,6 +12,7 @@ interface TooltipProps {
   delay?: number;
   fadeDuration?: number;
   anchorRef: React.RefObject<HTMLElement | null>; // ← null 許容
+  onRequestClose?: () => void;
 }
 
 const MARGIN = 8;
@@ -22,111 +24,129 @@ export default function Tooltip({
   delay = TOOLTIP_DELAY,
   fadeDuration = TOOLTIP_FADE_DURATION,
   anchorRef,
+  onRequestClose,
 }: TooltipProps) {
-  const [delayedVisible, setDelayedVisible] = useState(false);
+  const tipRef = useRef<HTMLDivElement | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [animateState, setAnimateState] = useState<
-    "hidden" | "showing" | "hiding"
-  >("hidden");
-  const tipRef = useRef<HTMLDivElement>(null);
-  const [style, setStyle] = useState<React.CSSProperties>({ opacity: 0 });
+    "idle" | "showing" | "hiding"
+  >("idle");
+  const [style, setStyle] = useState<React.CSSProperties | undefined>();
+  const router = useRouter();
 
-  // タイマー参照
-  const showTimerRef = useRef<number | undefined>(undefined);
-  const hideTimerRef = useRef<number | undefined>(undefined);
+  // 位置再計算
+  const recalc = () => {
+    const anchor = anchorRef.current;
+    const tip = tipRef.current;
+    if (!anchor || !tip) return;
 
-  // 表示/非表示の制御（タイマー競合を必ず解消）
+    const rect = anchor.getBoundingClientRect();
+    const tipRect = tip.getBoundingClientRect();
+
+    const top =
+      position === "top"
+        ? rect.top - tipRect.height - MARGIN
+        : rect.bottom + MARGIN;
+    const left = rect.left + rect.width / 2 - tipRect.width / 2;
+
+    const clampedLeft = Math.max(
+      8,
+      Math.min(left, window.innerWidth - tipRect.width - 8)
+    );
+    const clampedTop = Math.max(
+      8,
+      Math.min(top, window.innerHeight - tipRect.height - 8)
+    );
+
+    setStyle({
+      position: "fixed",
+      top: clampedTop,
+      left: clampedLeft,
+      transition: `opacity ${fadeDuration}ms ease`,
+      pointerEvents: "auto",
+    });
+  };
+
+  // 表示・非表示のアニメーション管理
   useEffect(() => {
-    // 既存タイマーは常にクリア
-    if (showTimerRef.current) {
-      clearTimeout(showTimerRef.current);
-      showTimerRef.current = undefined;
-    }
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = undefined;
-    }
-
+    if (!mounted) return;
+    let t: any;
     if (visible) {
-      showTimerRef.current = window.setTimeout(() => {
-        setDelayedVisible(true);
+      setAnimateState("idle");
+      t = setTimeout(() => {
         setAnimateState("showing");
+        recalc();
       }, delay);
     } else {
-      // すぐにフェード開始
       setAnimateState("hiding");
-      hideTimerRef.current = window.setTimeout(() => {
-        setDelayedVisible(false);
-        setAnimateState("hidden"); // ← フェード完了で hidden に戻す
-      }, fadeDuration);
+      t = setTimeout(() => setAnimateState("idle"), fadeDuration);
     }
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, mounted]);
 
-    return () => {
-      if (showTimerRef.current) clearTimeout(showTimerRef.current);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    };
-  }, [visible, delay, fadeDuration]);
+  // マウント
+  useEffect(() => setMounted(true), []);
 
-  // 位置決定（viewport基準）
+  // 再配置と自動クローズ
   useLayoutEffect(() => {
-    if (!delayedVisible) return;
+    if (!mounted) return;
 
-    const place = () => {
-      const anchor = anchorRef?.current;
-      const tip = tipRef.current;
-      if (!anchor || !tip) return;
-
-      const a = anchor.getBoundingClientRect();
-      const t = tip.getBoundingClientRect();
-
-      // 横：中央 → 端クランプ
-      let left = a.left + a.width / 2 - t.width / 2;
-      left = Math.max(
-        MARGIN,
-        Math.min(left, window.innerWidth - t.width - MARGIN)
-      );
-
-      // 縦：基本 top、はみ出せば bottom にフリップ
-      let top =
-        position === "top" ? a.top - t.height - MARGIN : a.bottom + MARGIN;
-      if (position === "top" && top < MARGIN) {
-        top = a.bottom + MARGIN; // flip
-      }
-      if (top + t.height > window.innerHeight - MARGIN) {
-        top = Math.max(MARGIN, window.innerHeight - t.height - MARGIN);
-      }
-
-      setStyle({
-        position: "fixed",
-        left,
-        top,
-        opacity: 1,
-        zIndex: 9999,
-        pointerEvents: "none",
-        transitionProperty: "opacity",
-        transitionDuration: `${fadeDuration}ms`,
-      });
+    const onScroll = () => {
+      // 位置再計算は従来通り
+      recalc();
+      // 追加：表示中はスクロールでクローズ要求（要件）
+      if (onRequestClose && visible) onRequestClose();
+    };
+    const onResize = () => {
+      recalc();
+      if (onRequestClose && visible) onRequestClose();
     };
 
-    place();
-    const onScroll = () => place();
-    const onResize = () => place();
     window.addEventListener("scroll", onScroll, true);
     window.addEventListener("resize", onResize);
+
+    // ルート遷移で閉じる（Pages Router）
+    const onRoute = () => {
+      if (onRequestClose && visible) onRequestClose();
+    };
+    router.events?.on("routeChangeStart", onRoute);
+
+    // 外側タップ検知（capture）
+    const onDocPointer = (e: Event) => {
+      if (!visible) return;
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+      const target = e.target as Node | null;
+      if (target && anchor.contains(target)) {
+        // アンカー内は閉じない（呼び出し元が制御）
+        return;
+      }
+      onRequestClose?.();
+    };
+
+    document.addEventListener("pointerdown", onDocPointer, true);
+    document.addEventListener("touchstart", onDocPointer, true);
+
     return () => {
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onResize);
+      router.events?.off("routeChangeStart", onRoute);
+      document.removeEventListener("pointerdown", onDocPointer, true);
+      document.removeEventListener("touchstart", onDocPointer, true);
     };
-  }, [delayedVisible, position, anchorRef, fadeDuration]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted, visible, anchorRef, onRequestClose]);
 
-  // 完全非表示時はアンマウント
-  if (!delayedVisible && animateState === "hidden") return null;
+  if (!mounted) return null;
+  if (animateState === "idle" && !visible) return null;
 
   return createPortal(
     <div
       ref={tipRef}
       style={style}
       className={`max-w-[min(320px,calc(100vw-16px))] rounded bg-gray-800 px-2 py-1
-                  text-xs text-white shadow-lg border border-white/20
+                  text-xs text-white shadow-lg border border-white/ z-[800]
                   ${animateState === "showing" ? "opacity-100" : "opacity-0"}`}
       role="tooltip"
     >

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "next/router";
 import FormModal from "@/components/common/modal/FormModal"; // ← 差し替え
 import SettingsModal from "@/components/account/SettingsModal";
 import Header from "@/components/mypage/Header";
