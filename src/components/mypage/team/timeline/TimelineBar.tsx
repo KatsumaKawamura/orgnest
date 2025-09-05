@@ -13,6 +13,7 @@ import Tooltip from "@/components/common/Tooltip";
  * - モバイル: pointerup（=タップ完了）かつ移動閾値10px未満 → 開閉
  * - 自動クローズ: 外側タップ / スクロール / リサイズ / ルート遷移
  * - 同時表示は1つのみ（新規オープン前に全閉イベントを発火）
+ * - 今回: リングは Tooltip の可視状態（hovered）に同期。focus() は使わない
  */
 
 const EVT_FORCE_CLOSE = "timeline:tooltip:force-close";
@@ -83,10 +84,7 @@ export default function TimelineBar({
     const dx = Math.abs(e.clientX - d.x);
     const dy = Math.abs(e.clientY - d.y);
     const moved = dx > TAP_MOVE_THRESHOLD || dy > TAP_MOVE_THRESHOLD;
-    if (moved) {
-      // スワイプ扱い：開かない
-      return;
-    }
+    if (moved) return; // スワイプ扱い：開かない
 
     // 同一カードの再タップで閉じる／未表示なら開く（明確な開閉）
     if (!hovered) {
@@ -98,6 +96,7 @@ export default function TimelineBar({
     } else {
       setHovered(false);
     }
+    // フォーカスAPIは使用しない（リングは hovered で制御）
   };
 
   // 他カードからの「閉じて」イベント
@@ -138,14 +137,13 @@ export default function TimelineBar({
   return (
     <div
       ref={anchorRef}
-      className="absolute"
+      className="absolute z-[700]"
       style={{
         top: pos.top,
         left: pos.left,
         width: pos.width,
         height: pos.height,
         padding: BAR_PADDING,
-        zIndex: 10,
         touchAction: "manipulation",
       }}
       onPointerEnter={onPointerEnter}
@@ -153,10 +151,16 @@ export default function TimelineBar({
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
     >
+      {/* クリック可能ブロック（リングは tip 可視状態に同期） */}
       <div
         className={`h-full w-full flex flex-col items-center
                     rounded border border-gray-400/50 p-1
-                    text-gray-800 cursor-pointer text-center ${colorClass}`}
+                    text-gray-800 cursor-pointer text-center ${colorClass}
+                    ${
+                      hovered
+                        ? "ring-2 ring-gray-900 ring-offset-2 ring-offset-white"
+                        : ""
+                    }`}
       >
         <div className="w-full min-w-0 font-semibold truncate">
           {schedule.project || "(no project)"}

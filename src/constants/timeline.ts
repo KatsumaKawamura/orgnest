@@ -26,10 +26,10 @@ export const FLAG_HEX: Record<string, string> = {
  * 既存の getFlagColor() から参照される想定
  */
 export const FLAG_COLORS: Record<string, string> = {
-  事務所: "bg-[#F8F8F8]",
-  現場: "bg-[#E99F67]",
-  打ち合わせ: "bg-[#8AB5A3]",
-  default: "bg-[#F8F8F8]",
+  事務所: "bg-[#F8F8F8] hover:bg-[#E0E0E0] focus:bg-[#E0E0E0]",
+  現場: "bg-[#E99F67] hover:bg-[#F1B380] focus:bg-[#F1B380]",
+  打ち合わせ: "bg-[#8AB5A3] hover:bg-[#A1C8B6] focus:bg-[#A1C8B6]",
+  default: "bg-[#F8F8F8] hover:bg-[#E0E0E0] focus:bg-[#E0E0E0]",
 };
 
 /**
